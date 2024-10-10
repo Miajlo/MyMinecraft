@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinomialHeapLibrary", "BinomialHeap\BinomialHeapLibrary.csproj", "{DBE817E3-B991-4D03-9AB3-0D14A6E21FE9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualisationBinomialHeap", "VisualisationBinomialHeap\VisualisationBinomialHeap.csproj", "{D8F32DB1-E85C-4E09-8113-5400DC2C6D53}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DBE817E3-B991-4D03-9AB3-0D14A6E21FE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBE817E3-B991-4D03-9AB3-0D14A6E21FE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBE817E3-B991-4D03-9AB3-0D14A6E21FE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBE817E3-B991-4D03-9AB3-0D14A6E21FE9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8F32DB1-E85C-4E09-8113-5400DC2C6D53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8F32DB1-E85C-4E09-8113-5400DC2C6D53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8F32DB1-E85C-4E09-8113-5400DC2C6D53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8F32DB1-E85C-4E09-8113-5400DC2C6D53}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B84EFA8A-A6CC-4182-B53A-F77BFA35E8C5}
+	EndGlobalSection
+EndGlobal

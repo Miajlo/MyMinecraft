@@ -1,0 +1,36 @@
+﻿namespace VisualisationBinomialHeap.Graphics; 
+public class ShaderProgram {
+    public int ID;
+    public ShaderProgram() {
+
+        ID = GL.CreateProgram();
+
+        int vertexShader = GL.CreateShader(ShaderType.VertexShader);
+        GL.ShaderSource(vertexShader, Window.LoadShaderSource("Default.vert"));
+        GL.CompileShader(vertexShader);
+
+        int fragShader = GL.CreateShader(ShaderType.FragmentShader);
+        GL.ShaderSource(fragShader, Window.LoadShaderSource("Default.frag"));
+        GL.CompileShader(fragShader);
+
+        GL.AttachShader(ID, vertexShader);
+        GL.AttachShader(ID, fragShader);
+
+        GL.LinkProgram(ID);
+
+        GL.DeleteShader(vertexShader);
+        GL.DeleteShader(fragShader);
+
+    }
+
+    public void Bind() {
+        GL.UseProgram(ID);
+    }
+    public void Unbind() {
+        GL.UseProgram(0);
+    }
+
+    public void Delete() {
+        GL.DeleteShader(ID);
+    }
+}
