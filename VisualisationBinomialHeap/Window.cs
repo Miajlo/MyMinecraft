@@ -1,6 +1,6 @@
-﻿using OpenTK.Compute.OpenCL;
+﻿using MyMinecraft.Unused;
+using OpenTK.Compute.OpenCL;
 using VisualisationBinomialHeap.Graphics;
-using VisualisationBinomialHeap.Models;
 
 namespace VisualisationBinomialHeap;
 
@@ -9,8 +9,8 @@ public class Window : GameWindow {
     private int Height;
 
     Chunk chunk, c2;
-
-    public static List<Chunk> chunks = new();
+    public int renderDistance = 2;
+    public static World world = new();
     
     Camera? camera;
 
@@ -35,13 +35,13 @@ public class Window : GameWindow {
                
         shaderProgram = new();
 
-        for(int i=0; i < 1;++i) {
-            for(int j=0; j< 1;++j) {
-                chunks.Add(new(new(i*16, 0, j*16)));
+        for(int i=0; i < renderDistance;++i) {
+            for(int j=0; j < renderDistance;++j) {
+                world.AddChunk(new(new(i*16, 0, j*16)));
             }
         }
         GL.Enable(EnableCap.DepthTest);
-
+        GL.DepthFunc(DepthFunction.Less);
         camera = new(Width, Height, (-5,-5,-5));
         CursorState = CursorState.Grabbed;
     }
@@ -50,8 +50,8 @@ public class Window : GameWindow {
         base.OnUnload();
 
         shaderProgram.Delete();
-        foreach (var c in chunks)
-            c.Delete();
+        foreach (var c in world.allChunks)
+            c.Value.Delete();
     }
 
     protected override void OnResize(ResizeEventArgs e) {
@@ -63,7 +63,7 @@ public class Window : GameWindow {
 
     protected override void OnRenderFrame(FrameEventArgs args) {
         GL.ClearColor(0f, 0f, 1f, 1f);
-         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
        
 
@@ -84,8 +84,8 @@ public class Window : GameWindow {
         //chunk.Render(shaderProgram);
         //c2.Render(shaderProgram);
 
-        foreach (var chank in chunks)
-            chank.Render(shaderProgram);
+        foreach (var chank in world.allChunks)
+            chank.Value.Render(shaderProgram);
 
         Context.SwapBuffers();
         base.OnRenderFrame(args);

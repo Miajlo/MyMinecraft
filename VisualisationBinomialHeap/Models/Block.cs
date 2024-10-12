@@ -3,7 +3,7 @@
 
 public class Block {
     public Vector3 position;
-
+    public BlockType Type;
     private Dictionary<Faces, FaceData> faces;
 
     List<Vector2> dirtUV = new() {
@@ -13,8 +13,10 @@ public class Block {
         new(0f, 0f),
     };
 
-    public Block(Vector3 pos) {
+    public Block(Vector3 pos, BlockType type = BlockType.EMPTY) {
         position = pos;
+
+        Type = type;
 
         faces = new() {
             {

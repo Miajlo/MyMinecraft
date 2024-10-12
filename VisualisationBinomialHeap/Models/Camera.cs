@@ -1,7 +1,9 @@
 ﻿namespace VisualisationBinomialHeap.Models; 
 public class Camera {
-    public bool doChecks = false;
+    public bool doCollisionChecks = false;
+    public bool collisionChecksFlag = false;
     public bool f3Pressed = false;
+    private float corrFact = 0.0f;
     public float Speed = 8f;
     private float Width;
     private float Height;
@@ -52,27 +54,32 @@ public class Camera {
     }
 
     public void InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
-       
-        if (input.IsKeyDown(Keys.W) && !CheckForCollision())
+
+        if (input.IsKeyDown(Keys.W))
             position += front * Speed * (float)e.Time;
-        if (input.IsKeyDown(Keys.S) && !CheckForCollision())
+        if (input.IsKeyDown(Keys.S))
             position -= front * Speed * (float)e.Time;
-        if (input.IsKeyDown(Keys.A) && !CheckForCollision())
+        if (input.IsKeyDown(Keys.A))
             position -= right * Speed * (float)e.Time;
-        if (input.IsKeyDown(Keys.D) && !CheckForCollision())
+        if (input.IsKeyDown(Keys.D))
             position += right * Speed * (float)e.Time;
-        if (input.IsKeyDown(Keys.Space) && !CheckForCollision())
+        if (input.IsKeyDown(Keys.Space))
             position.Y += Speed * (float)e.Time;
-        if (input.IsKeyDown(Keys.LeftShift) && !CheckForCollision())
+        if (input.IsKeyDown(Keys.LeftShift))
             position.Y -= Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.Escape))
             window.Close();
         if (input.IsKeyDown(Keys.F3) && !f3Pressed) {
-            Console.WriteLine($"Position: [ {position.X}, {position.Y}, {position.Z} ]");
+            PrintCurrentPosition();
             f3Pressed = true;
-            string chunkID = $"{(int)position.X / 16}," +
-            $" {(int)position.Y / 16}, {(int)position.Z / 16}";
-            Console.WriteLine($"Current chunk: [ {chunkID} ]");
+        }
+        if (input.IsKeyDown(Keys.F3) && input.IsKeyDown(Keys.N) && !collisionChecksFlag) {
+            doCollisionChecks = !doCollisionChecks;
+            Console.WriteLine($"Collision checks set to: {doCollisionChecks}");
+            collisionChecksFlag = true;
+        }
+        else if (input.IsKeyReleased(Keys.F3) && input.IsKeyReleased(Keys.N)) {
+            collisionChecksFlag = false;
         }
         else if (input.IsKeyReleased(Keys.F3))
             f3Pressed = false;
@@ -93,32 +100,59 @@ public class Camera {
         UpdateVectors();
     }
 
-    public bool CheckForCollision() {
-        if (!doChecks)
+    private void ShiftPressedHandle(FrameEventArgs e) {
+        Vector3 nextPos = position + (0, - Speed * (float)e.Time, 0);
+        if (!CheckForCollision(nextPos))
+            position = nextPos;
+
+    }
+
+    private void WPressedHandle(FrameEventArgs e) {
+        Vector3 nextPos = position + front * Speed * (float)e.Time;
+        if (!CheckForCollision(nextPos))
+            position = nextPos;
+    }
+
+    private void PrintCurrentPosition() {
+        float fposX = (int)(position.X + position.X > 0 ? corrFact : -corrFact);
+        float fposY = (int)(position.Y + position.Y > 0 ? corrFact : -corrFact);
+        float fposZ = (int)(position.Y + position.Y > 0 ? corrFact : -corrFact);
+
+        int posX = (int)Math.Floor(fposX / 16);
+        int posY = (int)Math.Floor(fposY / 16);
+        int posZ = (int)Math.Floor(fposZ / 16);
+
+        Console.WriteLine($"Position: [ {position.X}, {position.Y}, {position.Z} ]");
+        f3Pressed = true;
+        string chunkID = $"{posX}, {posY}, {posZ}";
+        Console.WriteLine($"Current chunk: [ {chunkID} ]");
+    }
+
+    public bool CheckForCollision(Vector3 nextPosition) {
+        if (!doCollisionChecks)
             return false;
 
-        if (position.X < 0 || position.Y < 0 || position.Z < 0)
+        if (nextPosition.X < 0 || position.Y < 0 || nextPosition.Z < 0)
             return false;
 
-        string chunkID = $"{position.X - position.X%16}," +
-            $" {position.Y - position.Y % 16}, {position.Z - position.Z % 16}";
-        Console.WriteLine("Current chunk: " + chunkID);
-        int X = (int)position.X;
-        int Y = (int)position.Y;
-        int Z = (int)position.Z;
+        string chunkID = $"{(int)(nextPosition.X - position.X%16)}," +
+                         $" {(int)(nextPosition.Y - nextPosition.Y % 16)}," +
+                         $" {(int)(nextPosition.Z - nextPosition.Z % 16)}";
+        //Console.WriteLine("Current chunk: " + chunkID);
+        int X = (int)nextPosition.X;
+        int Y = (int)nextPosition.Y;
+        int Z = (int)nextPosition.Z;
 
-        Chunk forCheckin = null;
-        
-        foreach (var c in Window.chunks)
-            if (c.ID == chunkID)
-                forCheckin = c;
-
-        if (forCheckin == null)
+        Chunk forCheckin = new();
+        if (!Window.world.allChunks.TryGetValue(chunkID, out forCheckin!)) {
+            //Console.WriteLine($"Not generated chunk: {chunkID}");
             return false;
+        }
+        //Console.WriteLine($"Found chunk: {forCheckin.ID}");
 
         if (X - 1 < forCheckin.position.X + 16 || X + 1 > forCheckin.position.X)
             return true;
-        if (Y - 2 < forCheckin.position.Y + 16 || Y + 2 > forCheckin.position.Y)
+        if (Y - 10 < forCheckin.position.Y + 18 || Y + 2 > forCheckin.position.Y)
             return true;
         if (Z - 1 < forCheckin.position.Z + 16 || Z + 1> forCheckin.position.Z)
             return true;

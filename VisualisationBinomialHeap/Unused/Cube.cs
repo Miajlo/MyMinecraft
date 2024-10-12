@@ -1,7 +1,9 @@
-﻿namespace VisualisationBinomialHeap.Models;
-public class Cube  {
+﻿namespace MyMinecraft.Unused;
+public class Cube
+{
 
-    public Cube(float v1, float v2, float v3, float v4) {
+    public Cube(float v1, float v2, float v3, float v4)
+    {
         tlX = v1;
         tlY = v2;
         tlZ = v3;
@@ -13,7 +15,8 @@ public class Cube  {
     public float tlZ { get; set; }
     public float EdgeLength { get; set; }
 
-    public Vector3[] GetVerteces() {
+    public Vector3[] GetVerteces()
+    {
         return [
             new Vector3(tlX, tlY, tlZ),
             new Vector3(tlX + EdgeLength, tlY, tlZ),
@@ -26,7 +29,8 @@ public class Cube  {
         ];
     }
 
-    public uint[] GetIndeces(uint offset = 0) {
+    public uint[] GetIndeces(uint offset = 0)
+    {
 
         uint[] arr = [
             0 , 1, 2, 2, 3, 0,
