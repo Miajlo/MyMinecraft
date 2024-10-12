@@ -6,33 +6,46 @@ public class Block {
 
     private Dictionary<Faces, FaceData> faces;
 
+    List<Vector2> dirtUV = new() {
+        new(0f, 1f),
+        new(1f, 1f),
+        new(1f, 0f),
+        new(0f, 0f),
+    };
+
     public Block(Vector3 pos) {
         position = pos;
 
         faces = new() {
             {
                 Faces.FRONT, 
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.FRONT]))
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.FRONT]),
+                   dirtUV)
             },
             {
                 Faces.BACK, 
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BACK]))
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BACK]),
+                    dirtUV)
             },
             {
                 Faces.LEFT,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.LEFT]))
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.LEFT])
+                , dirtUV)
             },
             {
                 Faces.RIGHT,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.RIGHT]))
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.RIGHT])
+                , dirtUV)
             },
             {
                 Faces.TOP,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.TOP]))
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.TOP]),
+                 dirtUV)
             },
             {
                 Faces.BOTTOM,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BOTTOM]))
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BOTTOM]),
+                 dirtUV)
             }
         };
     }

@@ -5,3 +5,5 @@ global using OpenTK.Graphics.OpenGL4;
 global using OpenTK.Windowing.Common;
 global using VisualisationBinomialHeap.Models;
 global using OpenTK.Windowing.GraphicsLibraryFramework;
+global using StbImageSharp;
+global using MyMinecraft.Models;

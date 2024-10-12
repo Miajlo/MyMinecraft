@@ -1,4 +1,6 @@
-﻿namespace VisualisationBinomialHeap.Graphics; 
+﻿using OpenTK.Compute.OpenCL;
+
+namespace VisualisationBinomialHeap.Graphics; 
 public class ShaderProgram {
     public int ID;
     public ShaderProgram() {
@@ -25,6 +27,7 @@ public class ShaderProgram {
 
     public void Bind() {
         GL.UseProgram(ID);
+        GL.Uniform1(GL.GetUniformLocation(ID, "texture0"), 0);
     }
     public void Unbind() {
         GL.UseProgram(0);

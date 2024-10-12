@@ -1,4 +1,5 @@
-﻿using VisualisationBinomialHeap.Graphics;
+﻿using OpenTK.Compute.OpenCL;
+using VisualisationBinomialHeap.Graphics;
 using VisualisationBinomialHeap.Models;
 
 namespace VisualisationBinomialHeap;
@@ -6,26 +7,15 @@ namespace VisualisationBinomialHeap;
 public class Window : GameWindow {
     private int Width;
     private int Height;
-    private Vector3[]? vertices;
 
-    uint[] indeces = [];
+    Chunk chunk, c2;
 
-    Chunk chunk = new(new(0, 0, 0));
-
-    List<Cube> cubes = new();
-    List<int> ind = new();
-
+    public static List<Chunk> chunks = new();
+    
     Camera? camera;
 
-    private List<Shape> ArrShapes { get; set; } = new();
-    VBO vbo;
-    VAO vao;
-    IBO ibo;
     ShaderProgram shaderProgram;
-    //private int vao;
-    //private int vbo;
-    //private int ebo;
-    //private int ShaderProgram;
+    
     public Window(int width, int height, string title):base(GameWindowSettings.Default, NativeWindowSettings.Default) {
         this.CenterWindow(new Vector2i(width, height));
         Height = height;
@@ -42,25 +32,17 @@ public class Window : GameWindow {
     protected override void OnLoad() {
         base.OnLoad();
 
-
-        //Cube cube = new(-1.0f, 0.5f, 0.0f, 1.0f);
-        //Cube c2 = new(0.1f, 0.5f, 0.0f, 1.0f);
-
-        //cubes.Add(cube);
-        //cubes.Add(c2);
-
-        chunk.GenChunk();
-
-        vao = new VAO();
-
-        vbo = new(chunk.chunkVert);
-
-        vao.LinkToVAO(0, 3, vbo);
-
-        ibo = new(chunk.chunkInd);
-
+               
         shaderProgram = new();
-        camera = new(Width, Height, Vector3.Zero);
+
+        for(int i=0; i < 1;++i) {
+            for(int j=0; j< 1;++j) {
+                chunks.Add(new(new(i*16, 0, j*16)));
+            }
+        }
+        GL.Enable(EnableCap.DepthTest);
+
+        camera = new(Width, Height, (-5,-5,-5));
         CursorState = CursorState.Grabbed;
     }
 
@@ -68,9 +50,8 @@ public class Window : GameWindow {
         base.OnUnload();
 
         shaderProgram.Delete();
-        vao.Delete();
-        vbo.Delete();
-        ibo.Delete();
+        foreach (var c in chunks)
+            c.Delete();
     }
 
     protected override void OnResize(ResizeEventArgs e) {
@@ -82,19 +63,11 @@ public class Window : GameWindow {
 
     protected override void OnRenderFrame(FrameEventArgs args) {
         GL.ClearColor(0f, 0f, 1f, 1f);
-        GL.Clear(ClearBufferMask.ColorBufferBit);
+         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-        //GL.UseProgram(shaderProgram.ID);
-        //GL.BindVertexArray(vao.ID);
-        //GL.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
+       
 
-        shaderProgram.Bind();
-        vao.Bind();
-        ibo.Bind();
-
-        int offset = 0;
-
-        int colorLocation = GL.GetUniformLocation(shaderProgram.ID, "uColor");
+        //int colorLocation = GL.GetUniformLocation(shaderProgram.ID, "uColor");
 
         Matrix4 model = Matrix4.Identity;
         Matrix4 view = camera!.GetViewMatrix();
@@ -108,19 +81,11 @@ public class Window : GameWindow {
         GL.UniformMatrix4(viewLocation, true, ref view);
         GL.UniformMatrix4(projectionLocation, true, ref projection);
 
-        GL.Uniform3(colorLocation, 0.486f, 0.294f, 0.165f);
+        //chunk.Render(shaderProgram);
+        //c2.Render(shaderProgram);
 
-        GL.DrawElements(PrimitiveType.Triangles, chunk.chunkInd.Count , DrawElementsType.UnsignedInt, 0);
-
-
-        //foreach (var shape in ArrShapes) {
-        //    //if (CheckShapeToColor(shape))
-        //    //    GL.Uniform3(colorLocation, 0.0f, 0.0f, 0.0f);
-        //    shape.DrawShape(offset);
-        //    offset += shape.Offset();
-        //    GL.Uniform3(colorLocation, 1.0f, 1.0f, 1.0f);
-        //}
-
+        foreach (var chank in chunks)
+            chank.Render(shaderProgram);
 
         Context.SwapBuffers();
         base.OnRenderFrame(args);
@@ -139,7 +104,22 @@ public class Window : GameWindow {
         base.OnUpdateFrame(args);
 
         camera.Update(keyboardState, MouseState, args, this);
+
+        //CheckForCollision();
     }
+
+    //private void CheckForCollision() {
+    //    int X = (int)camera.position.X;
+    //    int Y = (int)camera.position.Y;
+    //    int Z = (int)camera.position.Z;
+
+    //    if (Y - 2 < 16 && Y + 2 > 0)
+    //        Console.WriteLine("Detected horizontal collision: " + Y);
+    //    if (X - 1 < 16 && X + 1 > 0)
+    //        Console.WriteLine("Detected vertical X collision: " + X);
+    //    if (Z - 1 < 16 && Z + 1 > 0)
+    //        Console.WriteLine("Detected vertical Z collision: " + Z);
+    //}
 
     public static string LoadShaderSource(string v) {
         string shaderSource = "";
@@ -155,25 +135,5 @@ public class Window : GameWindow {
         return shaderSource;
     }
 
-    private Vector3[] GetCombinedVertices() {
-        List<Vector3> retVal = new();
 
-        foreach (var shape in cubes)
-            retVal.AddRange(shape.GetVerteces());
-
-        return retVal.ToArray();
-    }
-
-    private uint[] GetCombinedIndeces() {
-        List<uint> retVal = new();
-        uint offset = 0;
-
-        foreach (var c in cubes) {
-            var tmp = c.GetIndeces(offset);
-            retVal.AddRange(c.GetIndeces());
-            offset += (uint)c.GetVerteces().Length;
-
-        }
-        return retVal.ToArray();
-    }
 }

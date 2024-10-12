@@ -10,8 +10,10 @@ public enum Faces {
 
 public struct FaceData {
     public List<Vector3>? vertices;
-    public FaceData(List<Vector3> list) {
+    public List<Vector2>? uvs;
+    public FaceData(List<Vector3> list, List<Vector2> text) {
         vertices = list;
+        uvs = text;
     }
     public static readonly Dictionary<Faces, List<Vector3>> rawVertexData = new Dictionary<Faces, List<Vector3>>
          {
