@@ -55,13 +55,17 @@ public class Camera {
     public void InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
 
         if (input.IsKeyDown(Keys.W))
-            position = position + front * Speed * (float)e.Time;
+            WPressedHandle(e);
+        //position = position + front * Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.S))
-            position -= front * Speed * (float)e.Time;
+            //position -= front * Speed * (float)e.Time;
+            SPressedHandle(e);
         if (input.IsKeyDown(Keys.A))
-            position -= right * Speed * (float)e.Time;
+            APressedHandle(e);
+        //position -= right * Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.D))
-            position += right * Speed * (float)e.Time;
+            DPressedHandle(e);
+            //position += right * Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.Space))
             SpacePressedHandle(e);
         if (input.IsKeyDown(Keys.LeftShift))
@@ -99,6 +103,27 @@ public class Camera {
         UpdateVectors();
     }
 
+    private void DPressedHandle(FrameEventArgs e) {
+        Vector3 nextPos = position + (0, -2f, Math.Sign(position.X) * 1f);
+        if (!CheckForCollisions(nextPos) ||
+            !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+            position = position + right * Speed * (float)e.Time;
+    }
+
+    private void APressedHandle(FrameEventArgs e) {
+        Vector3 nextPos = position + (0, -2f, Math.Sign(position.X) * 1f);
+        if (!CheckForCollisions(nextPos) ||
+            !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+            position = position - right * Speed * (float)e.Time;
+    }
+
+    private void SPressedHandle(FrameEventArgs e) {
+        Vector3 nextPos = position - (Math.Sign(position.X) * 1f, -2f, 0);
+        if (!CheckForCollisions(nextPos) ||
+            !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+            position = position - front * Speed * (float)e.Time;
+    }
+
     private void SpacePressedHandle(FrameEventArgs e) {
         //position.Y += Speed * (float)e.Time;
 
@@ -115,7 +140,7 @@ public class Camera {
     }
 
     private void WPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (Math.Sign(position.X) * 1f, -2f, 0);
+        Vector3 nextPos = position + (Math.Sign(position.X) * 1.5f, -2f, 0);
         if (!CheckForCollisions(nextPos) ||
             !CheckForCollisions(nextPos + (0, -1.8f, 0)))
             position = position + front * Speed * (float)e.Time;
@@ -131,9 +156,15 @@ public class Camera {
 
        int posX, posY, posZ;
 
-        posX = (int)((position.X -  position.X % 16)/ 16 + 1 * Math.Sign(position.X));
+        int x = (int)nextPosition.X * Math.Sign(nextPosition.X),
+            z = (int)nextPosition.Z * Math.Sign(nextPosition.Z);
+        x  = x % 16;
+        z = z % 16;
+
+        posX = (int)((nextPosition.X -  nextPosition.X % 16)/ 16 + 1 * Math.Sign(nextPosition.X));
         posY = 0;
-        posZ = (int)((position.Z -  position.Z % 16) / 16 + 1 * Math.Sign(position.Z));
+        posZ = (int)((nextPosition.Z -  nextPosition.Z % 16) / 16 + 1 * Math.Sign(nextPosition.Z));
+
 
         string chunkID = $"{posX}, {posY}, {posZ}";
 
@@ -141,11 +172,8 @@ public class Camera {
             Console.WriteLine($"Specified chunk not yer generated, ID: {chunkID}");
             return false;
         }
-        int x = (int)nextPosition.X * Math.Sign(nextPosition.X),
-            z = (int)nextPosition.Z * Math.Sign(nextPosition.Z);
-        x  = x % 16;
-        z = z % 16;
 
+        Console.WriteLine($"Checking in chunk: {chunkID}");
         Console.WriteLine($"Checking block: {x}, {0}, {z}");
 
         if (forChekin.chunkBlocks[x,(int)nextPosition.Y * Math.Sign(nextPosition.Y), z].Type != BlockType.EMPTY)
