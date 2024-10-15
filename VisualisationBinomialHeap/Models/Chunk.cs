@@ -1,4 +1,5 @@
-﻿using VisualisationBinomialHeap.Graphics;
+﻿using System.Reflection.Metadata;
+using VisualisationBinomialHeap.Graphics;
 
 namespace VisualisationBinomialHeap.Models; 
 public class Chunk {
@@ -9,7 +10,7 @@ public class Chunk {
     public List<uint> chunkInd = new();
 
     public const int SIZE = 16;
-    public const int HEIGHT = 16;
+    public const int HEIGHT = 32;
 
     public Vector3 position;
 
@@ -30,7 +31,26 @@ public class Chunk {
 
     public Chunk(Vector3 pos) {
         position = pos;
-        ID = $"{pos.X}, {pos.Y}, {pos.Z}";
+
+        //ID = $"{(pos.X + 16 * Math.Sign(pos.X) )/ 16 + 1}," +
+        //     $" {(pos.Y + 16 * Math.Sign(pos.Y))/ 16}," +
+        //     $" {(pos.Z + 16 * Math.Sign(pos.Z))/ 16 + 1}";
+
+        int xID = (int)Math.Floor(pos.X / 16);
+        int yID = (int)Math.Floor(pos.Y / 16);
+        int zID = (int)Math.Floor(pos.Z / 16);
+
+        
+        xID = xID >= 0 ? xID + 1 : xID;
+        zID = zID >= 0 ? zID + 1 : zID; 
+
+        
+        if (xID == 1 && zID == 1) {
+            xID = 1;
+            zID = 1;
+        }
+
+        ID = $"{xID}, {yID}, {zID}";
         GenChunk();
         AddFaces();
         Console.WriteLine($"Generated chunk: [ {ID} ]");
@@ -101,7 +121,9 @@ public class Chunk {
         for (int y = 0; y < HEIGHT; ++y) {
             for (int i = 0; i < SIZE; ++i) {
                 for (int j = 0; j < SIZE; ++j) {
-                    Block block = new(new(i, y, j), BlockType.STONE);
+                    Block block = new(new(i, y, j), y < 16
+                                                      ? BlockType.STONE
+                                                      : BlockType.EMPTY);
 
                     chunkBlocks[i, y, j] = block;
 
@@ -152,7 +174,7 @@ public class Chunk {
         chunkIBO = new(chunkInd);
         chunkIBO.Bind();
 
-        texture = new("../../../Resources/MyStoneBlock.png");
+        texture = new("../../../Resources/MyDirtBlock.png");
     }
 
     public void Render(ShaderProgram program) {      
@@ -166,7 +188,7 @@ public class Chunk {
         texture.Bind();
         GL.Uniform1(GL.GetUniformLocation(program.ID, "texture0"), 0);
         GL.DrawElements(PrimitiveType.Triangles, chunkInd.Count,
-            DrawElementsType.UnsignedInt, 0);
+                        DrawElementsType.UnsignedInt, 0);
 
         if (firstDrawing) {
             Console.WriteLine($"Drew chunk: [ {ID} ]");

@@ -9,7 +9,7 @@ public class Window : GameWindow {
     private int Height;
 
     Chunk chunk, c2;
-    public int renderDistance = 2;
+    public int renderDistance = 4;
     public static World world = new();
     
     Camera? camera;

@@ -3,7 +3,6 @@ public class Camera {
     public bool doCollisionChecks = false;
     public bool collisionChecksFlag = false;
     public bool f3Pressed = false;
-    private float corrFact = 0.0f;
     public float Speed = 8f;
     private float Width;
     private float Height;
@@ -56,7 +55,7 @@ public class Camera {
     public void InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
 
         if (input.IsKeyDown(Keys.W))
-            position += front * Speed * (float)e.Time;
+            position = position + front * Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.S))
             position -= front * Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.A))
@@ -64,9 +63,9 @@ public class Camera {
         if (input.IsKeyDown(Keys.D))
             position += right * Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.Space))
-            position.Y += Speed * (float)e.Time;
+            SpacePressedHandle(e);
         if (input.IsKeyDown(Keys.LeftShift))
-            position.Y -= Speed * (float)e.Time;
+            ShiftPressedHandle(e);
         if (input.IsKeyDown(Keys.Escape))
             window.Close();
         if (input.IsKeyDown(Keys.F3) && !f3Pressed) {
@@ -100,27 +99,67 @@ public class Camera {
         UpdateVectors();
     }
 
+    private void SpacePressedHandle(FrameEventArgs e) {
+        //position.Y += Speed * (float)e.Time;
+
+        Vector3 nextPos = position + (0, 2.1f, 0);
+        if (!CheckForCollisions(nextPos))
+            position += (0, Speed * (float)e.Time, 0);
+    }
+
     private void ShiftPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (0, - Speed * (float)e.Time, 0);
-        if (!CheckForCollision(nextPos))
-            position = nextPos;
+        Vector3 nextPos = position + (0, -2f, 0);
+        if (!CheckForCollisions(nextPos))
+            position += (0, -Speed * (float)e.Time, 0);
 
     }
 
     private void WPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + front * Speed * (float)e.Time;
-        if (!CheckForCollision(nextPos))
-            position = nextPos;
+        Vector3 nextPos = position + (Math.Sign(position.X) * 1f, -2f, 0);
+        if (!CheckForCollisions(nextPos) ||
+            !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+            position = position + front * Speed * (float)e.Time;
+    }
+    //position = nextPos + (Math.Sign(position.X) * 0.5f, 0 , 0);
+    private bool CheckForCollisions(Vector3 nextPosition) {
+        if (!doCollisionChecks)
+            return false;
+        if (nextPosition.Y > Chunk.HEIGHT - 1 || (int)nextPosition.Y < 2)
+            return false;
+
+        Chunk? forChekin = new();
+
+       int posX, posY, posZ;
+
+        posX = (int)((position.X -  position.X % 16)/ 16 + 1 * Math.Sign(position.X));
+        posY = 0;
+        posZ = (int)((position.Z -  position.Z % 16) / 16 + 1 * Math.Sign(position.Z));
+
+        string chunkID = $"{posX}, {posY}, {posZ}";
+
+        if (!Window.world.allChunks.TryGetValue(chunkID, out forChekin)) {
+            Console.WriteLine($"Specified chunk not yer generated, ID: {chunkID}");
+            return false;
+        }
+        int x = (int)nextPosition.X * Math.Sign(nextPosition.X),
+            z = (int)nextPosition.Z * Math.Sign(nextPosition.Z);
+        x  = x % 16;
+        z = z % 16;
+
+        Console.WriteLine($"Checking block: {x}, {0}, {z}");
+
+        if (forChekin.chunkBlocks[x,(int)nextPosition.Y * Math.Sign(nextPosition.Y), z].Type != BlockType.EMPTY)
+            return true;
+
+        return false;
     }
 
     private void PrintCurrentPosition() {
-        float fposX = (int)(position.X + position.X > 0 ? corrFact : -corrFact);
-        float fposY = (int)(position.Y + position.Y > 0 ? corrFact : -corrFact);
-        float fposZ = (int)(position.Y + position.Y > 0 ? corrFact : -corrFact);
+        int posX, posY, posZ;
 
-        int posX = (int)Math.Floor(fposX / 16);
-        int posY = (int)Math.Floor(fposY / 16);
-        int posZ = (int)Math.Floor(fposZ / 16);
+        posX = (int)((position.X -  position.X % 16 )/ 16 + 1 * Math.Sign(position.X));
+        posY = 0;
+        posZ = (int)((position.Z -  position.Z % 16) / 16 + 1 * Math.Sign(position.Z));
 
         Console.WriteLine($"Position: [ {position.X}, {position.Y}, {position.Z} ]");
         f3Pressed = true;
