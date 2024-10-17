@@ -142,12 +142,19 @@ public class Camera {
     }
 
     private void WPressedHandle(FrameEventArgs e) {
+        Vector3 desiredPositon = position + front * Speed * (float)e.Time;
         Vector3 nextPos = position + (Math.Sign(front.X) * 1f, 0, 0);
+
         if (!CheckForCollisions(nextPos))
-            position.X += Speed * (float)e.Time * Math.Sign(front.X);
-        nextPos = position + (0, 0, Math.Sign(right.Z) * 1f);
+            position.X = (desiredPositon).X;
+
+        nextPos = position + (0, 0, Math.Sign(front.Z) * 1f);
+
         if (!CheckForCollisions(nextPos))
-            position.Z += Speed * (float)e.Time * -right.X * front.X;
+            position.Z = desiredPositon.Z;
+
+        if (!CheckForCollisions(nextPos + (0,1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+            position.Y = desiredPositon.Y;
     }
     //position = nextPos + (Math.Sign(position.X) * 0.5f, 0 , 0);
     private bool CheckForCollisions(Vector3 nextPosition) {
