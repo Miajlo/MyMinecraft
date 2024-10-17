@@ -8,7 +8,6 @@ public class Window : GameWindow {
     private int Width;
     private int Height;
 
-    Chunk chunk, c2;
     public int renderDistance = 4;
     public static World world = new();
     
@@ -21,12 +20,6 @@ public class Window : GameWindow {
         Height = height;
         Width = width;
         this.Title = title;
-
-        //model = Matrix4.Identity;
-        //view = Matrix4.Identity;
-        //projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60.0f),
-        //                                                          Width/ Height, 0.1f, 100.0f);
-        //model = Matrix4.CreateTranslation(0f, 0f, -3f);
     }
 
     protected override void OnLoad() {
@@ -65,10 +58,6 @@ public class Window : GameWindow {
         GL.ClearColor(0f, 0f, 1f, 1f);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-       
-
-        //int colorLocation = GL.GetUniformLocation(shaderProgram.ID, "uColor");
-
         Matrix4 model = Matrix4.Identity;
         Matrix4 view = camera!.GetViewMatrix();
         Matrix4 projection = camera!.GetProjectionMatrix();
@@ -81,20 +70,11 @@ public class Window : GameWindow {
         GL.UniformMatrix4(viewLocation, true, ref view);
         GL.UniformMatrix4(projectionLocation, true, ref projection);
 
-        //chunk.Render(shaderProgram);
-        //c2.Render(shaderProgram);
-
         foreach (var chank in world.allChunks)
             chank.Value.Render(shaderProgram);
 
         Context.SwapBuffers();
         base.OnRenderFrame(args);
-    }
-
-    private bool CheckShapeToColor(Shape shape) {
-        return shape is NumberOne ||
-               shape is Rectangle ||
-               shape is Parallelogram;
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args) {
@@ -107,33 +87,4 @@ public class Window : GameWindow {
 
         //CheckForCollision();
     }
-
-    //private void CheckForCollision() {
-    //    int X = (int)camera.position.X;
-    //    int Y = (int)camera.position.Y;
-    //    int Z = (int)camera.position.Z;
-
-    //    if (Y - 2 < 16 && Y + 2 > 0)
-    //        Console.WriteLine("Detected horizontal collision: " + Y);
-    //    if (X - 1 < 16 && X + 1 > 0)
-    //        Console.WriteLine("Detected vertical X collision: " + X);
-    //    if (Z - 1 < 16 && Z + 1 > 0)
-    //        Console.WriteLine("Detected vertical Z collision: " + Z);
-    //}
-
-    public static string LoadShaderSource(string v) {
-        string shaderSource = "";
-
-        try {
-            using (StreamReader sr = new("../../../Shaders/" + v)) {
-                shaderSource = sr.ReadToEnd();
-            }
-        }
-        catch (Exception ex) {
-            Console.WriteLine($"Error:{ex.Message}");
-        }
-        return shaderSource;
-    }
-
-
 }

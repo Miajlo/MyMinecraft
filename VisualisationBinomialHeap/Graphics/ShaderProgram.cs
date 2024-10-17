@@ -8,11 +8,11 @@ public class ShaderProgram {
         ID = GL.CreateProgram();
 
         int vertexShader = GL.CreateShader(ShaderType.VertexShader);
-        GL.ShaderSource(vertexShader, Window.LoadShaderSource("Default.vert"));
+        GL.ShaderSource(vertexShader, LoadShaderSource("Default.vert"));
         GL.CompileShader(vertexShader);
 
         int fragShader = GL.CreateShader(ShaderType.FragmentShader);
-        GL.ShaderSource(fragShader, Window.LoadShaderSource("Default.frag"));
+        GL.ShaderSource(fragShader, LoadShaderSource("Default.frag"));
         GL.CompileShader(fragShader);
 
         GL.AttachShader(ID, vertexShader);
@@ -35,5 +35,19 @@ public class ShaderProgram {
 
     public void Delete() {
         GL.DeleteShader(ID);
+    }
+
+    public static string LoadShaderSource(string v) {
+        string shaderSource = "";
+
+        try {
+            using (StreamReader sr = new("../../../Shaders/" + v)) {
+                shaderSource = sr.ReadToEnd();
+            }
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"Error:{ex.Message}");
+        }
+        return shaderSource;
     }
 }
