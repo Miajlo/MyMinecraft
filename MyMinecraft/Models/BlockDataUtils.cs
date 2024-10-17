@@ -1,4 +1,4 @@
-﻿namespace VisualisationBinomialHeap.Models;
+﻿namespace MyMinecraft.Models;
 
 public enum BlockType {
     EMPTY,

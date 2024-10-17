@@ -1,6 +1,6 @@
 ﻿using OpenTK.Compute.OpenCL;
 
-namespace VisualisationBinomialHeap.Graphics; 
+namespace MyMinecraft.Graphics; 
 public class ShaderProgram {
     public int ID;
     public ShaderProgram() {

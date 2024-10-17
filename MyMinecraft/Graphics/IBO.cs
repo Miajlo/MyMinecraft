@@ -1,4 +1,4 @@
-﻿namespace VisualisationBinomialHeap.Graphics; 
+﻿namespace MyMinecraft.Graphics; 
 public class IBO {
     public int ID;
 

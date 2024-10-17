@@ -1,4 +1,4 @@
-﻿namespace VisualisationBinomialHeap;
+﻿namespace MyMinecraft;
 
 
 public class Program {

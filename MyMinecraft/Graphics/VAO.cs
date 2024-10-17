@@ -1,4 +1,4 @@
-﻿namespace VisualisationBinomialHeap.Graphics; 
+﻿namespace MyMinecraft.Graphics; 
 public class VAO {
     public int ID;
     public VAO() {

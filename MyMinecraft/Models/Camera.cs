@@ -1,4 +1,4 @@
-﻿namespace VisualisationBinomialHeap.Models; 
+﻿namespace MyMinecraft.Models; 
 public class Camera {
     public bool doCollisionChecks = false;
     public bool collisionChecksFlag = false;
@@ -104,24 +104,26 @@ public class Camera {
     }
 
     private void DPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (0, -2f, Math.Sign(position.X) * 1f);
+        Vector3 nextPos = position + (0, -2f, Math.Sign(right.Z) * 1f);
         if (!CheckForCollisions(nextPos) ||
             !CheckForCollisions(nextPos + (0, -1.8f, 0)))
             position = position + right * Speed * (float)e.Time;
     }
 
     private void APressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (0, -2f, Math.Sign(position.X) * 1f);
+        Vector3 nextPos = position + (0, -2f, Math.Sign(-front.Z) * 1f);
         if (!CheckForCollisions(nextPos) ||
             !CheckForCollisions(nextPos + (0, -1.8f, 0)))
             position = position - right * Speed * (float)e.Time;
     }
 
     private void SPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position - (Math.Sign(position.X) * 1f, -2f, 0);
-        if (!CheckForCollisions(nextPos) ||
-            !CheckForCollisions(nextPos + (0, -1.8f, 0)))
-            position = position - front * Speed * (float)e.Time;
+        Vector3 nextPos = position + (Math.Sign(-front.X) * 1f, 0, 0);
+        if (!CheckForCollisions(nextPos))
+            position.X += Speed * (float)e.Time * Math.Sign(-front.X);
+        nextPos = position + (0, 0, Math.Sign(right.Z) * 1f);
+        if (!CheckForCollisions(nextPos))
+            position.Z += Speed * (float)e.Time * right.X;
     }
 
     private void SpacePressedHandle(FrameEventArgs e) {
@@ -140,10 +142,12 @@ public class Camera {
     }
 
     private void WPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (Math.Sign(position.X) * 1.5f, -2f, 0);
-        if (!CheckForCollisions(nextPos) ||
-            !CheckForCollisions(nextPos + (0, -1.8f, 0)))
-            position = position + front * Speed * (float)e.Time;
+        Vector3 nextPos = position + (Math.Sign(front.X) * 1f, 0, 0);
+        if (!CheckForCollisions(nextPos))
+            position.X += Speed * (float)e.Time * Math.Sign(front.X);
+        nextPos = position + (0, 0, Math.Sign(right.Z) * 1f);
+        if (!CheckForCollisions(nextPos))
+            position.Z += Speed * (float)e.Time * -right.X * front.X;
     }
     //position = nextPos + (Math.Sign(position.X) * 0.5f, 0 , 0);
     private bool CheckForCollisions(Vector3 nextPosition) {

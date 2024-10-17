@@ -1,8 +1,8 @@
 ﻿using MyMinecraft.Unused;
 using OpenTK.Compute.OpenCL;
-using VisualisationBinomialHeap.Graphics;
+using MyMinecraft.Graphics;
 
-namespace VisualisationBinomialHeap;
+namespace MyMinecraft;
 
 public class Window : GameWindow {
     private int Width;
@@ -42,7 +42,7 @@ public class Window : GameWindow {
         }
         GL.Enable(EnableCap.DepthTest);
         GL.DepthFunc(DepthFunction.Less);
-        camera = new(Width, Height, (-5,-5,-5));
+        camera = new(Width, Height, (1,18,1));
         CursorState = CursorState.Grabbed;
     }
 

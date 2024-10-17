@@ -1,7 +1,4 @@
-﻿using System.Reflection.Metadata;
-using VisualisationBinomialHeap.Graphics;
-
-namespace VisualisationBinomialHeap.Models; 
+﻿namespace MyMinecraft.Models; 
 public class Chunk {
     public string ID;
     public bool firstDrawing = true;
