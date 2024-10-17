@@ -58,8 +58,8 @@ public class Camera {
             WPressedHandle(e);
         //position = position + front * Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.S))
-            //position -= front * Speed * (float)e.Time;
             SPressedHandle(e);
+            //position -= front * Speed * (float)e.Time;
         if (input.IsKeyDown(Keys.A))
             APressedHandle(e);
         //position -= right * Speed * (float)e.Time;
@@ -104,26 +104,51 @@ public class Camera {
     }
 
     private void DPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (0, -2f, Math.Sign(right.Z) * 1f);
-        if (!CheckForCollisions(nextPos) ||
-            !CheckForCollisions(nextPos + (0, -1.8f, 0)))
-            position = position + right * Speed * (float)e.Time;
+        Vector3 desiredPositon = position + right * Speed * (float)e.Time;
+        Vector3 nextPos = position + (Math.Sign(right.X) * 1f, 0, 0);
+
+        if (!CheckForCollisions(nextPos))
+            position.X = (desiredPositon).X;
+
+        nextPos = position + (0, 0, Math.Sign(right.Z) * 1f);
+
+        if (!CheckForCollisions(nextPos))
+            position.Z = desiredPositon.Z;
+
+        if (!CheckForCollisions(nextPos + (0, 1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+            position.Y = desiredPositon.Y;
     }
 
     private void APressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (0, -2f, Math.Sign(-front.Z) * 1f);
-        if (!CheckForCollisions(nextPos) ||
-            !CheckForCollisions(nextPos + (0, -1.8f, 0)))
-            position = position - right * Speed * (float)e.Time;
+        Vector3 desiredPositon = position - right * Speed * (float)e.Time;
+        Vector3 nextPos = position + (Math.Sign(-right.X) * 1f, 0, 0);
+
+        if (!CheckForCollisions(nextPos))
+            position.X = (desiredPositon).X;
+
+        nextPos = position + (0, 0, Math.Sign(-right.Z) * 1f);
+
+        if (!CheckForCollisions(nextPos))
+            position.Z = desiredPositon.Z;
+
+        if (!CheckForCollisions(nextPos + (0, 1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+            position.Y = desiredPositon.Y;
     }
 
     private void SPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (Math.Sign(-front.X) * 1f, 0, 0);
+        Vector3 desiredPositon = position - front * Speed * (float)e.Time;
+        Vector3 nextPos = position + (Math.Sign(front.X) * 1f, 0, 0);
+
         if (!CheckForCollisions(nextPos))
-            position.X += Speed * (float)e.Time * Math.Sign(-front.X);
-        nextPos = position + (0, 0, Math.Sign(right.Z) * 1f);
+            position.X = (desiredPositon).X;
+
+        nextPos = position + (0, 0, Math.Sign(front.Z) * 1f);
+
         if (!CheckForCollisions(nextPos))
-            position.Z += Speed * (float)e.Time * right.X;
+            position.Z = desiredPositon.Z;
+
+        if (!CheckForCollisions(nextPos + (0, 1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+            position.Y = desiredPositon.Y;
     }
 
     private void SpacePressedHandle(FrameEventArgs e) {
@@ -204,38 +229,6 @@ public class Camera {
         f3Pressed = true;
         string chunkID = $"{posX}, {posY}, {posZ}";
         Console.WriteLine($"Current chunk: [ {chunkID} ]");
-    }
-
-    public bool CheckForCollision(Vector3 nextPosition) {
-        if (!doCollisionChecks)
-            return false;
-
-        if (nextPosition.X < 0 || position.Y < 0 || nextPosition.Z < 0)
-            return false;
-
-        string chunkID = $"{(int)(nextPosition.X - position.X%16)}," +
-                         $" {(int)(nextPosition.Y - nextPosition.Y % 16)}," +
-                         $" {(int)(nextPosition.Z - nextPosition.Z % 16)}";
-        //Console.WriteLine("Current chunk: " + chunkID);
-        int X = (int)nextPosition.X;
-        int Y = (int)nextPosition.Y;
-        int Z = (int)nextPosition.Z;
-
-        Chunk forCheckin = new();
-        if (!Window.world.allChunks.TryGetValue(chunkID, out forCheckin!)) {
-            //Console.WriteLine($"Not generated chunk: {chunkID}");
-            return false;
-        }
-        //Console.WriteLine($"Found chunk: {forCheckin.ID}");
-
-        if (X - 1 < forCheckin.position.X + 16 || X + 1 > forCheckin.position.X)
-            return true;
-        if (Y - 10 < forCheckin.position.Y + 18 || Y + 2 > forCheckin.position.Y)
-            return true;
-        if (Z - 1 < forCheckin.position.Z + 16 || Z + 1> forCheckin.position.Z)
-            return true;
-
-        return false;
     }
 
     public void Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
