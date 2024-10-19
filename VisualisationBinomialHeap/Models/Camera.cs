@@ -1,8 +1,16 @@
 ﻿namespace MyMinecraft.Models; 
 public class Camera {
+    #region GameRules
     public bool doCollisionChecks = false;
-    public bool collisionChecksFlag = false;
-    public bool f3Pressed = false;
+    public bool generateChunks = true;
+    public bool showChunkBorders = false;
+    #endregion
+    #region Flags
+    private bool collisionChecksFlag = false;
+    private bool f3Pressed = false;
+    private bool genChunksFlag = false;
+    private bool chunkBordersflag = false;
+    #endregion
     public float Speed = 8f;
     private float Width;
     private float Height;
@@ -70,12 +78,16 @@ public class Camera {
             SpacePressedHandle(e);
         if (input.IsKeyDown(Keys.LeftShift))
             ShiftPressedHandle(e);
+
         if (input.IsKeyDown(Keys.Escape))
             window.Close();
+
+
         if (input.IsKeyDown(Keys.F3) && !f3Pressed) {
             PrintCurrentPosition();
             f3Pressed = true;
         }
+
         if (input.IsKeyDown(Keys.F3) && input.IsKeyDown(Keys.N) && !collisionChecksFlag) {
             doCollisionChecks = !doCollisionChecks;
             Console.WriteLine($"Collision checks set to: {doCollisionChecks}");
@@ -86,8 +98,28 @@ public class Camera {
         }
         else if (input.IsKeyReleased(Keys.F3))
             f3Pressed = false;
-            
-        if(isFirstMove) {
+
+        if (input.IsKeyDown(Keys.F3) && input.IsKeyDown(Keys.M) && !genChunksFlag) {
+            generateChunks = !generateChunks;
+            Console.WriteLine($"Generate chunks set to: {generateChunks}");
+            genChunksFlag = true;
+        }
+        else if (input.IsKeyReleased(Keys.F3) && input.IsKeyReleased(Keys.M))
+            genChunksFlag = false;
+        else if (input.IsKeyReleased(Keys.F3))
+            f3Pressed = false;
+
+        if (input.IsKeyDown(Keys.F3) && input.IsKeyDown(Keys.G) && !genChunksFlag) {
+            showChunkBorders = !showChunkBorders;
+            Console.WriteLine($"Show chunk borders set to: {showChunkBorders}");
+            genChunksFlag = true;
+        }
+        else if (input.IsKeyReleased(Keys.F3) && input.IsKeyReleased(Keys.M))
+            showChunkBorders = false;
+        else if (input.IsKeyReleased(Keys.F3))
+            f3Pressed = false;
+
+        if (isFirstMove) {
             lastPosition = new(mouse.X, mouse.Y);
             isFirstMove = false;
         }
@@ -110,7 +142,7 @@ public class Camera {
         if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0,-1f,0)) )
             position.X = (desiredPositon).X;
 
-        nextPos = position + (0, 0, Math.Sign(right.Z) * 1f);
+        nextPos = position + (0, 1f, Math.Sign(right.Z) * 1f);
 
         if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
             position.Z = desiredPositon.Z;
@@ -190,7 +222,7 @@ public class Camera {
 
         Chunk? forChekin = new();
 
-       int posX, posY, posZ;
+        int posX, posY, posZ;
 
         int x = (int)nextPosition.X * Math.Sign(nextPosition.X),
             z = (int)nextPosition.Z * Math.Sign(nextPosition.Z);
@@ -209,6 +241,10 @@ public class Camera {
             return false;
         }
 
+        if (!Window.world.forRendering.Contains(forChekin)) {
+            Console.WriteLine($"Current chunk not loaded, ID: {chunkID}");
+            return false;
+        }
         //Console.WriteLine($"Checking in chunk: {chunkID}");
         //Console.WriteLine($"Checking block: {x}, {0}, {z}");
 

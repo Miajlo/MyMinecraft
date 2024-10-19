@@ -69,13 +69,7 @@ public class Window : GameWindow {
         GL.UniformMatrix4(modelLocation, true, ref model);
         GL.UniformMatrix4(viewLocation, true, ref view);
         GL.UniformMatrix4(projectionLocation, true, ref projection);
-
-
-        var currChunkPos = Camera.GetChunkPos(camera.position);
-        if (currChunkPos != camera.lastChunkPos) {
-            world.UpdateChunkRanderList(camera.position);
-            camera.lastChunkPos =  Camera.GetChunkPos(camera.position);
-        }
+        //Console.WriteLine($"New Thread ID: {Thread.CurrentThread.ManagedThreadId}");
         world.RenderChunks(shaderProgram);
 
         Context.SwapBuffers();
@@ -90,9 +84,12 @@ public class Window : GameWindow {
         //Console.WriteLine("Update frame!");
         camera!.Update(keyboardState, MouseState, args, this);
 
-
+        var currChunkPos = Camera.GetChunkPos(camera.position);
+        if (currChunkPos != camera.lastChunkPos && camera.generateChunks) {
+            world.UpdateChunkRanderList(camera.position);
+            camera.lastChunkPos =  Camera.GetChunkPos(camera.position);
+        }
        
-
         //CheckForCollision();
     }
 }

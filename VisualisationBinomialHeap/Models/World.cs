@@ -4,7 +4,7 @@ public class World {
     public List<Chunk> forRendering = new();
     public int renderDistance = -1;
     public void AddChunk(Chunk chunk) {
-        if (allChunks.TryAdd(chunk.ID, chunk))
+        if (allChunks.TryAdd(chunk.ID!, chunk))
             Console.WriteLine($"Succesfully saved chunk: {chunk.ID}");
         else
             Console.WriteLine($"Error adding chunk: {chunk.ID}");

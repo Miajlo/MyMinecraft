@@ -1,6 +1,6 @@
 ﻿namespace MyMinecraft.Models; 
 public class Chunk {
-    public string ID;
+    public string? ID;
     public bool firstDrawing = true;
     public List<Vector3> chunkVert = new();
     public List<Vector2> chunkUVs = new();
@@ -162,7 +162,7 @@ public class Chunk {
         chunkIBO = new(chunkInd);
         chunkIBO.Bind();
 
-        texture = new("../../../Resources/MyStoneBlock.png");
+        texture = new("../../../Resources/MyDirtBlock.png");
 
         Built = true;
     }
