@@ -15,7 +15,7 @@ public class Camera {
     public Vector2 lastPosition;
 
     public Vector3 position;
-
+    public Vector3 lastChunkPos = (-500, 0, -500);
     Vector3 up = Vector3.UnitY;
     Vector3 front = - Vector3.UnitZ;
     Vector3 right = Vector3.UnitX;
@@ -100,7 +100,7 @@ public class Camera {
             yawn += dX * Sensitivity * (float)e.Time;
             pitch -= dY * Sensitivity * (float)e.Time;
         }
-        UpdateVectors();
+       UpdateVectors();
     }
 
     private void DPressedHandle(FrameEventArgs e) {
@@ -154,7 +154,7 @@ public class Camera {
     private void SpacePressedHandle(FrameEventArgs e) {
         //position.Y += Speed * (float)e.Time;
 
-        Vector3 nextPos = position + (0, 2.1f, 0);
+        Vector3 nextPos = position + (0, 2.2f, 0);
         if (!CheckForCollisions(nextPos))
             position += (0, Speed * (float)e.Time, 0);
     }
@@ -170,7 +170,7 @@ public class Camera {
         Vector3 desiredPositon = position + front * Speed * (float)e.Time;
         Vector3 nextPos = position + (Math.Sign(front.X) * 1f, 0, 0);
 
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
+        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)) && !CheckForCollisions(nextPos + (0, 1.8f, 0)))
             position.X = (desiredPositon).X;
 
         nextPos = position + (0, 0, Math.Sign(front.Z) * 1f);
@@ -178,7 +178,7 @@ public class Camera {
         if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0,-1f,0)))
             position.Z = desiredPositon.Z;
 
-        if (!CheckForCollisions(nextPos + (0,1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)))
+        if (!CheckForCollisions(nextPos + (0,1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1f, 0)))
             position.Y = desiredPositon.Y;
     }
     //position = nextPos + (Math.Sign(position.X) * 0.5f, 0 , 0);
@@ -209,8 +209,8 @@ public class Camera {
             return false;
         }
 
-        Console.WriteLine($"Checking in chunk: {chunkID}");
-        Console.WriteLine($"Checking block: {x}, {0}, {z}");
+        //Console.WriteLine($"Checking in chunk: {chunkID}");
+        //Console.WriteLine($"Checking block: {x}, {0}, {z}");
 
         if (forChekin.chunkBlocks[x,(int)nextPosition.Y * Math.Sign(nextPosition.Y), z].Type != BlockType.EMPTY)
             return true;
@@ -229,6 +229,15 @@ public class Camera {
         f3Pressed = true;
         string chunkID = $"{posX}, {posY}, {posZ}";
         Console.WriteLine($"Current chunk: [ {chunkID} ]");
+    }
+
+    public static Vector3 GetChunkPos(Vector3 pos) {
+        int posX, posY, posZ;
+
+        posX = (int)((pos.X -  pos.X % 16) / 16 + 1 * Math.Sign(pos.X));
+        posY = 0;
+        posZ = (int)((pos.Z -  pos.Z % 16) / 16 + 1 * Math.Sign(pos.Z));
+        return new(posX, posY, posZ);
     }
 
     public void Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {

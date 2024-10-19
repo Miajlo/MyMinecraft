@@ -7,14 +7,14 @@ public class Chunk {
     public List<uint> chunkInd = new();
 
     public const int SIZE = 16;
-    public const int HEIGHT = 32;
+    public const int HEIGHT = 16;
 
     public Vector3 position;
 
     public Block[,,] chunkBlocks = new Block[SIZE,HEIGHT,SIZE]; 
 
     public uint indexCount;
-
+    public bool Built { get; set; } = false;
     VAO chunkVAO;
     VBO chunkVBO;
     VBO chunkUVVBO;
@@ -27,27 +27,18 @@ public class Chunk {
     }
 
     public Chunk(Vector3 pos) {
-        position = pos;
+       
 
         //ID = $"{(pos.X + 16 * Math.Sign(pos.X) )/ 16 + 1}," +
         //     $" {(pos.Y + 16 * Math.Sign(pos.Y))/ 16}," +
         //     $" {(pos.Z + 16 * Math.Sign(pos.Z))/ 16 + 1}";
 
-        int xID = (int)Math.Floor(pos.X / 16);
-        int yID = (int)Math.Floor(pos.Y / 16);
-        int zID = (int)Math.Floor(pos.Z / 16);
 
-        
-        xID = xID >= 0 ? xID + 1 : xID;
-        zID = zID >= 0 ? zID + 1 : zID; 
-
-        
-        if (xID == 1 && zID == 1) {
-            xID = 1;
-            zID = 1;
-        }
-
-        ID = $"{xID}, {yID}, {zID}";
+        position = pos;
+        ID = ConvertPosToChunkID(position);
+        Console.WriteLine($"Chunk::ID: {ID}");
+       
+        Console.WriteLine($"Chunk::ChunkPosition:{position}");
         GenChunk();
         AddFaces();
         Console.WriteLine($"Generated chunk: [ {ID} ]");
@@ -171,7 +162,9 @@ public class Chunk {
         chunkIBO = new(chunkInd);
         chunkIBO.Bind();
 
-        texture = new("../../../Resources/MyDirtBlock.png");
+        texture = new("../../../Resources/MyStoneBlock.png");
+
+        Built = true;
     }
 
     public void Render(ShaderProgram program) {      
@@ -197,10 +190,57 @@ public class Chunk {
         chunkUVVBO.Unbind();
         chunkVBO.Unbind();
     }
+
+    public Vector3 NormalizedChunkPos {
+        get {
+            int posX, posY, posZ;
+
+            posX = (int)((position.X -  position.X % 16)/ 16 + 1 * Math.Sign(position.X));
+            posY = 0;
+            posZ = (int)((position.Z -  position.Z % 16) / 16 + 1 * Math.Sign(position.Z));
+            return new(posX, posY, posZ);
+        }
+    }
+
+    public static string ConvertPosToChunkID(Vector3 pos) {
+        int xID = (int)Math.Floor(pos.X / 16);
+        int yID = 0;
+        int zID = (int)Math.Floor(pos.Z / 16);
+
+
+        xID = xID == 0 ? xID + 1 : xID;
+        zID = zID == 0 ? zID + 1 : zID;
+
+
+        if (xID == 1 && zID == 1) {
+            xID = 1;
+            zID = 1;
+        }
+        return $"{xID}, {yID}, {zID}";
+    }
+
+    public void Unload() {
+        chunkIBO.Unbind();
+        chunkVAO.Unbind();
+        chunkVBO.Unbind();
+        texture.Unbind();
+        Built = false;
+    }
+
     public void Delete() {
         chunkIBO.Delete();
         chunkVAO.Delete();
         chunkVBO.Delete();
         texture.Delete();
+        Built = false;
+    }
+
+    public static void ConvertToWorldCoords(ref Vector3 currChunkPos) {
+        if (currChunkPos.X > 0)
+            --currChunkPos.X;
+        if (currChunkPos.Z > 0)
+            --currChunkPos.Z;
+
+        currChunkPos *= Chunk.SIZE;
     }
 }

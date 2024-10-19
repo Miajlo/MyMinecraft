@@ -28,14 +28,14 @@ public class Window : GameWindow {
                
         shaderProgram = new();
 
-        for(int i=0; i < renderDistance;++i) {
-            for(int j=0; j < renderDistance;++j) {
-                world.AddChunk(new(new(i*16, 0, j*16)));
-            }
-        }
+        //for(int i=0; i < renderDistance;++i) {
+        //    for(int j=0; j < renderDistance;++j) {
+        //        world.AddChunk(new(new(i*16, 0, j*16)));
+        //    }
+        //}
         GL.Enable(EnableCap.DepthTest);
         GL.DepthFunc(DepthFunction.Less);
-        camera = new(Width, Height, (1,18,1));
+        camera = new(Width, Height, (1 , 66, 1));
         CursorState = CursorState.Grabbed;
     }
 
@@ -70,8 +70,13 @@ public class Window : GameWindow {
         GL.UniformMatrix4(viewLocation, true, ref view);
         GL.UniformMatrix4(projectionLocation, true, ref projection);
 
-        foreach (var chank in world.allChunks)
-            chank.Value.Render(shaderProgram);
+
+        var currChunkPos = Camera.GetChunkPos(camera.position);
+        if (currChunkPos != camera.lastChunkPos) {
+            world.UpdateChunkRanderList(camera.position);
+            camera.lastChunkPos =  Camera.GetChunkPos(camera.position);
+        }
+        world.RenderChunks(shaderProgram);
 
         Context.SwapBuffers();
         base.OnRenderFrame(args);
@@ -82,8 +87,11 @@ public class Window : GameWindow {
         KeyboardState keyboardState = KeyboardState;
 
         base.OnUpdateFrame(args);
+        //Console.WriteLine("Update frame!");
+        camera!.Update(keyboardState, MouseState, args, this);
 
-        camera.Update(keyboardState, MouseState, args, this);
+
+       
 
         //CheckForCollision();
     }

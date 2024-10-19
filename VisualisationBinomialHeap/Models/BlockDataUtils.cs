@@ -60,5 +60,5 @@ public struct FaceData {
         new Vector3(1.0f, 0.0f, 0.0f),  // Back bottom-right
         new Vector3(0.0f, 0.0f, 0.0f)   // Back bottom-left
     }}
-};
+    };
 }
