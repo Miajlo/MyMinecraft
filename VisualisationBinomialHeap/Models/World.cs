@@ -4,7 +4,7 @@ namespace MyMinecraft.Models;
 public class World {
     public Dictionary<string, Chunk> allChunks = new();
     public ConcurrentBag<Chunk> forRendering = new();
-    public int renderDistance = 2;
+    public int renderDistance = 3;
     public bool readyToRender = false;
     public object locker = new();
     public void AddChunk(Chunk chunk) {
@@ -22,7 +22,7 @@ public class World {
             AddChunksToRender(pos);
         });
     }
-   
+
     private void AddChunksToRender(Vector3 pos) {
         readyToRender = false;
         var currChunkPos = Camera.GetChunkPos(pos);
@@ -30,25 +30,22 @@ public class World {
         //Console.WriteLine($"World::currChunkID: {chunkID}");
         Chunk toAdd = new();
 
-        int renderBound = renderDistance*renderDistance + 1;
+        int renderBound = renderDistance;
 
         for (int i = 0; i < renderBound; ++i) {
-            for (int j = 0; j < renderBound; ++j) {
-                var chunkID = $"{currChunkPos.X + i}, {currChunkPos.Y}, {currChunkPos.Z}";
-                Vector3 copyChunkPos = new(currChunkPos.X, currChunkPos.Y, currChunkPos.Z);
-                copyChunkPos.X += i;
-                copyChunkPos.Z += j;
-                if (!allChunks.TryGetValue(chunkID, out toAdd)) {
-                    Chunk.ConvertToWorldCoords(ref copyChunkPos);
-                    Console.WriteLine($"World::currCunkPosition:{copyChunkPos}");
-                    toAdd = new(copyChunkPos);
-                    allChunks.Add(chunkID, toAdd);
-                }
-                else
-                    Console.WriteLine($"Loaded chunk: {chunkID}");
-                if (!forRendering.Contains(toAdd)) {
-                    forRendering.Add(toAdd);
-                }
+            var chunkID = $"{currChunkPos.X + i}, {currChunkPos.Y}, {currChunkPos.Z}";
+            Vector3 copyChunkPos = new(currChunkPos.X, currChunkPos.Y, currChunkPos.Z);
+            copyChunkPos.X += i;
+            if (!allChunks.TryGetValue(chunkID, out toAdd)) {
+                Chunk.ConvertToWorldCoords(ref copyChunkPos);
+                Console.WriteLine($"World::currCunkPosition:{copyChunkPos}");
+                toAdd = new(copyChunkPos);
+                allChunks.Add(chunkID, toAdd);
+            }
+            else
+                Console.WriteLine($"Loaded chunk: {chunkID}");
+            if (!forRendering.Contains(toAdd)) {
+                forRendering.Add(toAdd);
             }
         }
      
