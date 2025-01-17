@@ -15,6 +15,7 @@ public class Chunk {
 
     public uint indexCount;
     public bool Built { get; set; } = false;
+    public bool Rendered { get; set; } = false;
     VAO chunkVAO;
     VBO chunkVBO;
     VBO chunkUVVBO;
@@ -42,7 +43,7 @@ public class Chunk {
         GenChunk();
         AddFaces();
         Console.WriteLine($"Generated chunk: [ {ID} ]");
-        BuildChunk();
+        //BuildChunk();
         Console.WriteLine($"Built chunk: [ {ID} ]");
 
     }
@@ -162,7 +163,7 @@ public class Chunk {
         chunkIBO = new(chunkInd);
         chunkIBO.Bind();
 
-        texture = new("../../../Resources/MyDirtBlock.png");
+        texture = new("../../../Resources/MyStoneBlock.png");
 
         Built = true;
     }

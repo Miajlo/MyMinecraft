@@ -20,11 +20,12 @@ public class Window : GameWindow {
         Height = height;
         Width = width;
         this.Title = title;
+        
     }
 
     protected override void OnLoad() {
         base.OnLoad();
-
+        
                
         shaderProgram = new();
 
@@ -70,6 +71,9 @@ public class Window : GameWindow {
         GL.UniformMatrix4(viewLocation, true, ref view);
         GL.UniformMatrix4(projectionLocation, true, ref projection);
         //Console.WriteLine($"New Thread ID: {Thread.CurrentThread.ManagedThreadId}");
+        //if(world.readyToRender)
+
+  
         world.RenderChunks(shaderProgram);
 
         Context.SwapBuffers();
