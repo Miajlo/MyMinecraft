@@ -76,6 +76,8 @@ public class Window : GameWindow {
   
         world.RenderChunks(shaderProgram);
 
+        //world.DrawChunkBorders(shaderProgram, camera.position);
+
         Context.SwapBuffers();
         base.OnRenderFrame(args);
     }

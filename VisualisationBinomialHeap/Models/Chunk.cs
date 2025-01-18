@@ -185,7 +185,8 @@ public class Chunk {
         if (firstDrawing) {
             Console.WriteLine($"Drew chunk: [ {ID} ]");
             firstDrawing = false;
-        }
+        } 
+
         texture.Unbind();
         chunkVAO.Unbind();
         chunkIBO.Unbind();

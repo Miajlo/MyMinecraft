@@ -1,9 +1,11 @@
-﻿using System.Collections.Concurrent;
+﻿using MyMinecraft.Graphics;
+using System.Collections.Concurrent;
 
 namespace MyMinecraft.Models; 
 public class World {
     public Dictionary<string, Chunk> allChunks = new();
     public ConcurrentBag<Chunk> forRendering = new();
+    
     public int renderDistance = 3;
     public bool readyToRender = false;
     public object locker = new();
@@ -65,16 +67,59 @@ public class World {
         Console.WriteLine($"TotalIterations: {totalIterations}");
     }
 
-    public void RenderChunks(ShaderProgram program) {
-
-        
+    public void RenderChunks(ShaderProgram program) {      
         foreach (var chunk in forRendering) {
             if (!chunk.Built)
                 chunk.BuildChunk();
             chunk.Render(program);
             chunk.Rendered = true;
-        }
+        }      
+    }
 
+    public void DrawChunkBorders(ShaderProgram program, Vector3 pos) {
+        
+        program.Bind();
+
+        var currChunk = Camera.GetChunkPos(pos);
+
+        List<Vector3> verts = new List<Vector3> {
+            new Vector3(0.0f, 0.0f, 0.0f),  // Start of line
+            new Vector3(0.0f, 255.0f, 0.0f) // End of line
+        };
+
+        List<uint> ind = new List<uint> { 0, 1 };  // Indices for line: vertex 0 -> vertex 1
+
+        Matrix4 model = Matrix4.CreateTranslation(new(0,0,0));
+        int modelLocation = GL.GetUniformLocation(program.ID, "model");
+        GL.UniformMatrix4(modelLocation, true, ref model);
+
+        // Create VAO for the line
+        VAO lineVao = new VAO();
+        lineVao.Bind();
+
+        // Create VBO for the vertex data
+        VBO lineVBO = new VBO(verts);
+        lineVBO.Bind();
+        lineVao.LinkToVAO(0, 3, lineVBO);  // 0 is the attribute index, 3 components per vertex (x, y, z)
+
+        // Create IBO for the index data
+        IBO lineIBO = new IBO(ind);
+        lineIBO.Bind();
+        GL.LineWidth(5.0f);
+
+        lineVao.Bind();
+        lineVBO.Bind();
+        lineIBO.Bind();
+
+        GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        //GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        // Draw the line
+        GL.DrawElements(PrimitiveType.Lines, ind.Count, DrawElementsType.UnsignedInt, 0);
+
+        // Unbind the buffers
+        lineIBO.Unbind();
+        lineVao.Unbind();
+        lineVBO.Unbind();
     }
 
     private void RemoveFarChunks(Vector3 pos) {
