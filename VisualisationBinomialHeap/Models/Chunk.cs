@@ -7,7 +7,7 @@ public class Chunk {
     public List<uint> chunkInd = new();
 
     public const int SIZE = 16;
-    public const int HEIGHT = 256;
+    public const int HEIGHT = 16;
 
     public Vector3 position;
 
@@ -109,10 +109,11 @@ public class Chunk {
     public void GenChunk() {
         for (int y = 0; y < HEIGHT; ++y) {
             for (int i = 0; i < SIZE; ++i) {
+                Random rnd = new Random();
                 for (int j = 0; j < SIZE; ++j) {
-                    Block block = new(new(i, y, j), y < 64
+                    Block block = new(new(i, y, j), y < 16
                                                       ? BlockType.STONE
-                                                      : BlockType.EMPTY);
+                                                      : BlockType.EMPTY); ;
 
                     chunkBlocks[i, y, j] = block;
 
@@ -163,7 +164,7 @@ public class Chunk {
         chunkIBO = new(chunkInd);
         chunkIBO.Bind();
 
-        texture = new("../../../Resources/MyStoneBlock.png");
+        texture = new("../../../Resources/MyDirtBlock.png");
 
         Built = true;
     }

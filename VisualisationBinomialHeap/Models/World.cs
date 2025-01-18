@@ -34,13 +34,12 @@ public class World {
         int renderBound = renderDistance;
         int totalIterations = 0;
 
-        int XbottomBound = (int)(currChunkPos.X) - renderBound * Chunk.SIZE; 
-        int ZbottomBound = (int)(currChunkPos.Z) - renderBound * Chunk.SIZE;
+        int XbottomBound = (int)(currChunkPos.X) - (renderBound) * Chunk.SIZE; 
+        int ZbottomBound = (int)(currChunkPos.Z) - (renderBound) * Chunk.SIZE;
         int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE;
         int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE;
 
   
-
 
         for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
             for(int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
