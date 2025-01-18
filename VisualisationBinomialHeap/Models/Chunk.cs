@@ -7,7 +7,7 @@ public class Chunk {
     public List<uint> chunkInd = new();
 
     public const int SIZE = 16;
-    public const int HEIGHT = 16;
+    public const int HEIGHT = 256;
 
     public Vector3 position;
 
@@ -110,7 +110,7 @@ public class Chunk {
         for (int y = 0; y < HEIGHT; ++y) {
             for (int i = 0; i < SIZE; ++i) {
                 for (int j = 0; j < SIZE; ++j) {
-                    Block block = new(new(i, y, j), y < 16
+                    Block block = new(new(i, y, j), y < 64
                                                       ? BlockType.STONE
                                                       : BlockType.EMPTY);
 
@@ -204,19 +204,20 @@ public class Chunk {
     }
 
     public static string ConvertPosToChunkID(Vector3 pos) {
-        int xID = (int)Math.Floor(pos.X / 16);
+        int xID = (int)Math.Floor(pos.X / 16) + 1 * Math.Sign(pos.X);
         int yID = 0;
-        int zID = (int)Math.Floor(pos.Z / 16);
+        int zID = (int)Math.Floor(pos.Z / 16) + 1 * Math.Sign(pos.Z);
+
+        
+
+        //xID = xID == 0 ? xID + 1 : xID;
+        //zID = zID == 0 ? zID + 1 : zID;
 
 
-        xID = xID == 0 ? xID + 1 : xID;
-        zID = zID == 0 ? zID + 1 : zID;
-
-
-        if (xID == 1 && zID == 1) {
-            xID = 1;
-            zID = 1;
-        }
+        //if (xID == 1 && zID == 1) {
+        //    xID = 1;
+        //    zID = 1;
+        //}
         return $"{xID}, {yID}, {zID}";
     }
 

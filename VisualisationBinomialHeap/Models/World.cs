@@ -26,29 +26,45 @@ public class World {
     private void AddChunksToRender(Vector3 pos) {
         readyToRender = false;
         var currChunkPos = Camera.GetChunkPos(pos);
-        //var chunkID = $"{currChunkPos.X}, {currChunkPos.Y}, {currChunkPos.Z}";
-        //Console.WriteLine($"World::currChunkID: {chunkID}");
+        Chunk.ConvertToWorldCoords(ref currChunkPos);
+        var chunkID = $"{currChunkPos.X}, {currChunkPos.Y}, {currChunkPos.Z}";
+        Console.WriteLine($"World::currChunkID: {chunkID}");
         Chunk toAdd = new();
 
         int renderBound = renderDistance;
+        int totalIterations = 0;
 
-        for (int i = 0; i < renderBound; ++i) {
-            var chunkID = $"{currChunkPos.X + i}, {currChunkPos.Y}, {currChunkPos.Z}";
-            Vector3 copyChunkPos = new(currChunkPos.X, currChunkPos.Y, currChunkPos.Z);
-            copyChunkPos.X += i;
-            if (!allChunks.TryGetValue(chunkID, out toAdd)) {
-                Chunk.ConvertToWorldCoords(ref copyChunkPos);
-                Console.WriteLine($"World::currCunkPosition:{copyChunkPos}");
-                toAdd = new(copyChunkPos);
-                allChunks.Add(chunkID, toAdd);
+        int XbottomBound = (int)(currChunkPos.X) - renderBound; 
+        int ZbottomBound = (int)(currChunkPos.Z) - renderBound;
+        int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE;
+        int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE;
+
+  
+
+
+
+        for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
+            for(int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
+                Console.WriteLine($"i = {i}, j = {j}");
+                Vector3 copyChunkPos = new(i, 0, j);
+                chunkID = Chunk.ConvertPosToChunkID(copyChunkPos);
+
+                if (!allChunks.TryGetValue(chunkID, out toAdd)) {
+                    
+                    Console.WriteLine($"World::currCunkPosition:{copyChunkPos}");
+                    toAdd = new(copyChunkPos);
+                    allChunks.Add(chunkID, toAdd);
+                }
+                else
+                    Console.WriteLine($"Loaded chunk: {chunkID}");
+                if (!forRendering.Contains(toAdd)) {
+                    forRendering.Add(toAdd);
+                }
+                ++totalIterations;
             }
-            else
-                Console.WriteLine($"Loaded chunk: {chunkID}");
-            if (!forRendering.Contains(toAdd)) {
-                forRendering.Add(toAdd);
-            }
+            
         }
-     
+        Console.WriteLine($"TotalIterations: {totalIterations}");
     }
 
     public void RenderChunks(ShaderProgram program) {
