@@ -96,6 +96,7 @@ public class Camera {
         else if (input.IsKeyReleased(Keys.F3) && input.IsKeyReleased(Keys.N)) {
             collisionChecksFlag = false;
         }
+        
         else if (input.IsKeyReleased(Keys.F3))
             f3Pressed = false;
 
@@ -109,13 +110,14 @@ public class Camera {
         else if (input.IsKeyReleased(Keys.F3))
             f3Pressed = false;
 
-        if (input.IsKeyDown(Keys.F3) && input.IsKeyDown(Keys.G) && !genChunksFlag) {
+        if (input.IsKeyDown(Keys.F3) && input.IsKeyDown(Keys.G) && !chunkBordersflag) {
             showChunkBorders = !showChunkBorders;
-            Console.WriteLine($"Show chunk borders set to: {showChunkBorders}");
-            genChunksFlag = true;
+            Console.WriteLine($"Collision checks set to: {showChunkBorders}");
+            chunkBordersflag = true;
         }
-        else if (input.IsKeyReleased(Keys.F3) && input.IsKeyReleased(Keys.M))
-            showChunkBorders = false;
+        else if (input.IsKeyReleased(Keys.F3) && input.IsKeyReleased(Keys.G)) {
+            chunkBordersflag = false;
+        }
         else if (input.IsKeyReleased(Keys.F3))
             f3Pressed = false;
 
@@ -234,7 +236,7 @@ public class Camera {
         posZ = (int)((nextPosition.Z -  nextPosition.Z % 16) / 16 + 1 * Math.Sign(nextPosition.Z));
 
 
-        string chunkID = $"{posX}, {posY}, {posZ}";
+        string chunkID = $"{posX},{posY},{posZ}";
 
         if (!Window.world.allChunks.TryGetValue(chunkID, out forChekin)) {
             Console.WriteLine($"Specified chunk not yer generated, ID: {chunkID}");
@@ -263,7 +265,7 @@ public class Camera {
 
         Console.WriteLine($"Position: [ {position.X}, {position.Y}, {position.Z} ]");
         f3Pressed = true;
-        string chunkID = $"{posX}, {posY}, {posZ}";
+        string chunkID = GetChunkID(position);
         Console.WriteLine($"Current chunk: [ {chunkID} ]");
     }
 
@@ -274,6 +276,15 @@ public class Camera {
         posY = 0;
         posZ = (int)((pos.Z -  pos.Z % 16) / 16 + 1 * Math.Sign(pos.Z));
         return new(posX, posY, posZ);
+    }
+
+    public static string GetChunkID(Vector3 pos) {
+        int posX, posY, posZ;
+
+        posX = (int)((pos.X -  pos.X % 16) / 16 + 1 * Math.Sign(pos.X));
+        posY = 0;
+        posZ = (int)((pos.Z -  pos.Z % 16) / 16 + 1 * Math.Sign(pos.Z));
+        return $"{posX},{posY},{posZ}";
     }
 
     public void Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {

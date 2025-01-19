@@ -205,6 +205,19 @@ public class Chunk {
         }
     }
 
+    public static string NormalizeChunkID(Vector3 position) {
+        int posX, posY, posZ;
+
+        posX = (int)(position.X -  position.X % 16)/ 16;
+        posY = 0;
+        posZ = (int)(position.Z -  position.Z % 16) / 16;
+
+        posX += posX < 0 ? 1 : 0;
+        posZ += posZ < 0 ? 1 : 0;
+
+        return $"{posX},{posY},{posZ}";
+    }
+
     public static string ConvertPosToChunkID(Vector3 pos) {
         int xID = (int)Math.Floor(pos.X / 16) + 1 * Math.Sign(pos.X);
         int yID = 0;
@@ -212,16 +225,18 @@ public class Chunk {
 
         
 
-        //xID = xID == 0 ? xID + 1 : xID;
-        //zID = zID == 0 ? zID + 1 : zID;
+        xID = xID == 0 ? 1 : xID;
+        zID = zID == 0 ? 1 : zID;
 
 
-        //if (xID == 1 && zID == 1) {
-        //    xID = 1;
-        //    zID = 1;
-        //}
-        return $"{xID}, {yID}, {zID}";
+        if (xID == 1 && zID == 1) {
+            xID = 1;
+            zID = 1;
+        }
+        return $"{xID},{yID},{zID}";
     }
+
+
 
     public void Unload() {
         chunkIBO.Unbind();

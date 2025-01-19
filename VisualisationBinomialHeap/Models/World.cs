@@ -31,13 +31,13 @@ public class World {
         Chunk.ConvertToWorldCoords(ref currChunkPos);
         var chunkID = $"{currChunkPos.X}, {currChunkPos.Y}, {currChunkPos.Z}";
         Console.WriteLine($"World::currChunkID: {chunkID}");
-        Chunk toAdd = new();
+        Chunk? toAdd = new();
 
         int renderBound = renderDistance;
         int totalIterations = 0;
 
-        int XbottomBound = (int)(currChunkPos.X) - (renderBound) * Chunk.SIZE; 
-        int ZbottomBound = (int)(currChunkPos.Z) - (renderBound) * Chunk.SIZE;
+        int XbottomBound = (int)(currChunkPos.X) - (renderBound - 1) * Chunk.SIZE; 
+        int ZbottomBound = (int)(currChunkPos.Z) - (renderBound - 1) * Chunk.SIZE;
         int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE;
         int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE;
 
@@ -45,7 +45,7 @@ public class World {
 
         for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
             for(int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
-                Console.WriteLine($"i = {i}, j = {j}");
+                //Console.WriteLine($"i = {i}, j = {j}");
                 Vector3 copyChunkPos = new(i, 0, j);
                 chunkID = Chunk.ConvertPosToChunkID(copyChunkPos);
 
@@ -80,17 +80,40 @@ public class World {
         
         program.Bind();
 
-        var currChunk = Camera.GetChunkPos(pos);
 
+        var currChunkPos = Camera.GetChunkPos(pos);
+        Chunk.ConvertToWorldCoords(ref currChunkPos);
+
+        float HEIGHT = 128.0f;   // Example height, can be replaced by your parameter
+        float chunkSize = Chunk.SIZE; // Use your Chunk.SIZE value
+
+        // Define vertices for vertical lines
         List<Vector3> verts = new List<Vector3> {
-            new Vector3(0.0f, 0.0f, 0.0f),  // Start of line
-            new Vector3(0.0f, 255.0f, 0.0f) // End of line
+            new Vector3(0.0f, 0.0f, 0.0f),          // Line 1 start
+            new Vector3(0.0f, HEIGHT, 0.0f),        // Line 1 end
+            new Vector3(chunkSize, 0.0f, 0.0f),     // Line 2 start
+            new Vector3(chunkSize, HEIGHT, 0.0f),   // Line 2 end
+            new Vector3(0.0f, 0.0f, chunkSize),     // Line 3 start
+            new Vector3(0.0f, HEIGHT, chunkSize),   // Line 3 end
+            new Vector3(chunkSize, 0.0f, chunkSize),// Line 4 start
+            new Vector3(chunkSize, HEIGHT, chunkSize)// Line 4 end
         };
 
-        List<uint> ind = new List<uint> { 0, 1 };  // Indices for line: vertex 0 -> vertex 1
+        // Define indices for the lines
+        List<uint> ind = new List<uint> {
+            0, 1, // Line 1
+            2, 3, // Line 2
+            4, 5, // Line 3
+            6, 7,  // Line 4
+            1, 3,            
+            1, 5,
+            7, 5,
+            7, 3
+        };
 
-        Matrix4 model = Matrix4.CreateTranslation(new(0,0,0));
+        Matrix4 model = Matrix4.CreateTranslation(currChunkPos);
         int modelLocation = GL.GetUniformLocation(program.ID, "model");
+        model = model * Matrix4.Identity;
         GL.UniformMatrix4(modelLocation, true, ref model);
 
         // Create VAO for the line
@@ -111,11 +134,17 @@ public class World {
         lineVBO.Bind();
         lineIBO.Bind();
 
-        GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        //GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        GL.ClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+        
         // Draw the line
         GL.DrawElements(PrimitiveType.Lines, ind.Count, DrawElementsType.UnsignedInt, 0);
 
+
+
+        Matrix4 identityMatrix = Matrix4.Identity;  // Identity matrix (no transformation)
+
+        modelLocation = GL.GetUniformLocation(program.ID, "model");
+        GL.UniformMatrix4(modelLocation, false, ref identityMatrix);
         // Unbind the buffers
         lineIBO.Unbind();
         lineVao.Unbind();
