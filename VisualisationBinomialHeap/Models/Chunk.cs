@@ -229,14 +229,12 @@ public class Chunk {
         zID = zID == 0 ? 1 : zID;
 
 
-        if (xID == 1 && zID == 1) {
-            xID = 1;
-            zID = 1;
-        }
+        //if (xID == 1 && zID == 1) {
+        //    xID = 1;
+        //    zID = 1;
+        //}
         return $"{xID},{yID},{zID}";
     }
-
-
 
     public void Unload() {
         chunkIBO.Unbind();

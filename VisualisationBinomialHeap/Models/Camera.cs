@@ -236,7 +236,7 @@ public class Camera {
         posZ = (int)((nextPosition.Z -  nextPosition.Z % 16) / 16 + 1 * Math.Sign(nextPosition.Z));
 
 
-        string chunkID = $"{posX},{posY},{posZ}";
+        string chunkID = $"{Chunk.ConvertPosToChunkID(position)}";
 
         if (!Window.world.allChunks.TryGetValue(chunkID, out forChekin)) {
             Console.WriteLine($"Specified chunk not yer generated, ID: {chunkID}");
