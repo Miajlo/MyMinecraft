@@ -29,13 +29,19 @@ public class Window : GameWindow {
                
         shaderProgram = new();
 
+
+
         //for(int i=0; i < renderDistance;++i) {
         //    for(int j=0; j < renderDistance;++j) {
         //        world.AddChunk(new(new(i*16, 0, j*16)));
         //    }
         //}
         GL.Enable(EnableCap.DepthTest);
-        GL.DepthFunc(DepthFunction.Less);
+        GL.Enable(EnableCap.CullFace);
+        GL.FrontFace(FrontFaceDirection.Cw); // or Cw, depending on your winding order
+        GL.CullFace(CullFaceMode.Back); // or Front, depending on which faces should be culled
+        GL.DepthFunc(DepthFunction.Less); // or another appropriate depth function
+
         camera = new(Width, Height, (1 , 66, 1));
         CursorState = CursorState.Grabbed;
     }

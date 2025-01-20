@@ -23,6 +23,9 @@ public class World {
             RemoveFarChunks(pos);
             AddChunksToRender(pos);
         });
+
+        //GC.Collect();
+        //GC.WaitForFullGCComplete();
     }
 
     private void AddChunksToRender(Vector3 pos) {
@@ -38,8 +41,8 @@ public class World {
 
         int XbottomBound = (int)(currChunkPos.X) - (renderBound - 1) * Chunk.SIZE; 
         int ZbottomBound = (int)(currChunkPos.Z) - (renderBound - 1) * Chunk.SIZE;
-        int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE;
-        int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE;
+        int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
+        int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
 
   
 
@@ -166,5 +169,8 @@ public class World {
 
         var newForRendering = new ConcurrentBag<Chunk>(forRendering.Except(toRemove));
         forRendering = newForRendering;
+        
+        //foreach (var chunk in toRemove)
+        //    chunk.ClearBlockFaceData();
     }
 }

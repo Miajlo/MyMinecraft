@@ -252,6 +252,20 @@ public class Chunk {
         Built = false;
     }
 
+    public void ClearBlockFaceData() {
+        Parallel.For(0, HEIGHT, y => 
+        {
+            for (int i = 0; i < SIZE; ++i) {
+                for (int j = 0; j < SIZE; ++j) {
+                    chunkBlocks[i, y, j].ClearFaceData();
+                }
+            }
+        });
+        //for (int y = 0; y < HEIGHT; ++y) {
+            
+        //}
+    }
+
     public static void ConvertToWorldCoords(ref Vector3 currChunkPos) {
         if (currChunkPos.X > 0)
             --currChunkPos.X;

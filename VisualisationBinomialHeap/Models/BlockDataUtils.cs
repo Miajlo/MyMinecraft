@@ -1,12 +1,12 @@
 ﻿namespace MyMinecraft.Models;
 
-public enum BlockType {
+public enum BlockType : ushort {
     EMPTY,
     DIRT,
     STONE
 }
 
-public enum Faces {
+public enum Faces :byte {
     FRONT,
     BACK,
     LEFT,
@@ -25,40 +25,40 @@ public struct FaceData {
     public static readonly Dictionary<Faces, List<Vector3>> rawVertexData = new Dictionary<Faces, List<Vector3>>
 {
     { Faces.FRONT, new List<Vector3> {
-        new Vector3(0.0f, 1.0f, 1.0f),  // Top-left
-        new Vector3(1.0f, 1.0f, 1.0f),  // Top-right
-        new Vector3(1.0f, 0.0f, 1.0f),  // Bottom-right
-        new Vector3(0.0f, 0.0f, 1.0f)   // Bottom-left
+        new Vector3(0.0f, 1.0f, 1.0f),  // Top-left 1 GOOD
+        new Vector3(1.0f, 1.0f, 1.0f),  // Top-right 2
+        new Vector3(1.0f, 0.0f, 1.0f),  // Bottom-right 3
+        new Vector3(0.0f, 0.0f, 1.0f)   // Bottom-left 4
     }},
     { Faces.BACK, new List<Vector3> {
-        new Vector3(0.0f, 1.0f, 0.0f),  // Top-left
-        new Vector3(1.0f, 1.0f, 0.0f),  // Top-right
-        new Vector3(1.0f, 0.0f, 0.0f),  // Bottom-right
-        new Vector3(0.0f, 0.0f, 0.0f)   // Bottom-left
+        new Vector3(0.0f, 1.0f, 0.0f),  // Top-left 1 GOOD
+        new Vector3(0.0f, 0.0f, 0.0f),   // Bottom-left 4
+        new Vector3(1.0f, 0.0f, 0.0f),  // Bottom-right 3
+        new Vector3(1.0f, 1.0f, 0.0f)  // Top-right 2
     }},
     { Faces.LEFT, new List<Vector3> {
-        new Vector3(0.0f, 1.0f, 1.0f),  // Front top-left
-        new Vector3(0.0f, 1.0f, 0.0f),  // Back top-left
-        new Vector3(0.0f, 0.0f, 0.0f),  // Back bottom-left
-        new Vector3(0.0f, 0.0f, 1.0f)   // Front bottom-left
+        new Vector3(0.0f, 1.0f, 1.0f),  // Front top-left 1
+        new Vector3(0.0f, 0.0f, 1.0f),   // Front bottom-left 4
+        new Vector3(0.0f, 0.0f, 0.0f),  // Back bottom-left 3
+        new Vector3(0.0f, 1.0f, 0.0f)  // Back top-left 2
     }},
     { Faces.RIGHT, new List<Vector3> {
-        new Vector3(1.0f, 1.0f, 1.0f),  // Front top-right
-        new Vector3(1.0f, 1.0f, 0.0f),  // Back top-right
-        new Vector3(1.0f, 0.0f, 0.0f),  // Back bottom-right
-        new Vector3(1.0f, 0.0f, 1.0f)   // Front bottom-right
+        new Vector3(1.0f, 1.0f, 1.0f),  // Front top-right 1
+        new Vector3(1.0f, 1.0f, 0.0f),  // Back top-right 2
+        new Vector3(1.0f, 0.0f, 0.0f),  // Back bottom-right 3
+        new Vector3(1.0f, 0.0f, 1.0f)   // Front bottom-right 4
     }},
     { Faces.TOP, new List<Vector3> {
-        new Vector3(0.0f, 1.0f, 1.0f),  // Front top-left
-        new Vector3(1.0f, 1.0f, 1.0f),  // Front top-right
-        new Vector3(1.0f, 1.0f, 0.0f),  // Back top-right
-        new Vector3(0.0f, 1.0f, 0.0f)   // Back top-left
+        new Vector3(0.0f, 1.0f, 1.0f),  // Front top-left 1 GOOD
+        new Vector3(0.0f, 1.0f, 0.0f),   // Back top-left 4
+        new Vector3(1.0f, 1.0f, 0.0f),  // Back top-right 3
+        new Vector3(1.0f, 1.0f, 1.0f)  // Front top-right 2
     }},
     { Faces.BOTTOM, new List<Vector3> {
-        new Vector3(0.0f, 0.0f, 1.0f),  // Front bottom-left
-        new Vector3(1.0f, 0.0f, 1.0f),  // Front bottom-right
-        new Vector3(1.0f, 0.0f, 0.0f),  // Back bottom-right
-        new Vector3(0.0f, 0.0f, 0.0f)   // Back bottom-left
+        new Vector3(0.0f, 0.0f, 1.0f),  // Front bottom-left 1 GOOD
+        new Vector3(1.0f, 0.0f, 1.0f),  // Front bottom-right 2
+        new Vector3(1.0f, 0.0f, 0.0f),  // Back bottom-right 3
+        new Vector3(0.0f, 0.0f, 0.0f)   // Back bottom-left 4
     }}
     };
 }

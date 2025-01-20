@@ -18,14 +18,18 @@ public class Block {
 
         Type = type;
 
-        faces = new() {
+        faces = CreateFaces();
+    }
+
+    public Dictionary<Faces, FaceData> CreateFaces() {
+        return new() {
             {
-                Faces.FRONT, 
+                Faces.FRONT,
                 new(AddTransformedVertices(FaceData.rawVertexData[Faces.FRONT]),
                    dirtUV)
             },
             {
-                Faces.BACK, 
+                Faces.BACK,
                 new(AddTransformedVertices(FaceData.rawVertexData[Faces.BACK]),
                     dirtUV)
             },
@@ -62,6 +66,12 @@ public class Block {
     }
 
     public FaceData GetFace(Faces face) {
+        faces ??= CreateFaces();
+
         return faces[face];
+    }
+
+    public void ClearFaceData() {
+        faces = null;
     }
 }
