@@ -6,7 +6,7 @@ public class IBO {
         ID = GL.GenBuffer();
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, ID);
         GL.BufferData(BufferTarget.ElementArrayBuffer, data.Count * sizeof(uint),
-                      data.ToArray(), BufferUsageHint.StaticDraw);
+                      data.ToArray(), BufferUsageHint.StreamDraw);
     }
 
     public void Bind() {

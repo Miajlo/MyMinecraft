@@ -46,6 +46,7 @@ public class Chunk {
         //BuildChunk();
         Console.WriteLine($"Built chunk: [ {ID} ]");
 
+        
     }
 
     private void AddFaces() {
@@ -100,10 +101,14 @@ public class Chunk {
 
                         // Add indices for the added faces
                         AddInceces(addedFaces);
+                        chunkBlocks[x, y, z].ClearFaceData();
                     }
                 }
             }
         }
+        chunkInd.TrimExcess();
+        chunkVert.TrimExcess();
+        chunkUVs.TrimExcess();
     }
 
     public void GenChunk() {
@@ -131,6 +136,7 @@ public class Chunk {
     }
 
     public void IntegrateFace(Block block, Faces face) {
+        block.AddFace(face);
         var faceData = block.GetFace(face);
         chunkVert.AddRange(faceData.vertices!);
         chunkUVs.AddRange(faceData!.uvs!);
@@ -150,6 +156,13 @@ public class Chunk {
     }
 
     public void BuildChunk() {
+        chunkInd ??= new();
+        chunkVert ??= new();
+        chunkUVs ??= new();
+
+        if (!Built && !firstDrawing)
+            AddFaces();
+
         chunkVAO = new();
         chunkVAO.Bind();
 
@@ -169,7 +182,10 @@ public class Chunk {
         Built = true;
     }
 
-    public void Render(ShaderProgram program) {      
+    public void Render(ShaderProgram program) {
+        if (!Built)
+            BuildChunk();
+
         program.Bind();
         chunkVAO.Bind();
         chunkIBO.Bind();
@@ -215,25 +231,26 @@ public class Chunk {
         posX += posX < 0 ? 1 : 0;
         posZ += posZ < 0 ? 1 : 0;
 
-        return $"{posX},{posY},{posZ}";
+        return $"{posX},{posZ}";
     }
 
     public static string ConvertPosToChunkID(Vector3 pos) {
-        int xID = (int)Math.Floor(pos.X / 16) + 1 * Math.Sign(pos.X);
-        int yID = 0;
-        int zID = (int)Math.Floor(pos.Z / 16) + 1 * Math.Sign(pos.Z);
+        int xID = (int)Math.Floor(pos.X / 16);
+        int zID = (int)Math.Floor(pos.Z / 16);
 
-        
 
-        xID = xID == 0 ? 1 : xID;
-        zID = zID == 0 ? 1 : zID;
+
+        if (xID >= 0)
+            ++xID;
+        if (zID >= 0)
+            ++zID;
 
 
         //if (xID == 1 && zID == 1) {
         //    xID = 1;
         //    zID = 1;
         //}
-        return $"{xID},{yID},{zID}";
+        return $"{xID},{zID}";
     }
 
     public void Unload() {
@@ -249,6 +266,13 @@ public class Chunk {
         chunkVAO.Delete();
         chunkVBO.Delete();
         texture.Delete();
+
+        chunkInd = null;
+        chunkVert = null;
+        chunkUVs = null;
+
+        indexCount = 0;
+
         Built = false;
     }
 

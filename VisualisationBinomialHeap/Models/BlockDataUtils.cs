@@ -1,6 +1,6 @@
 ﻿namespace MyMinecraft.Models;
 
-public enum BlockType : ushort {
+public enum BlockType : byte {
     EMPTY,
     DIRT,
     STONE
@@ -23,7 +23,7 @@ public struct FaceData {
         uvs = text;
     }
     public static readonly Dictionary<Faces, List<Vector3>> rawVertexData = new Dictionary<Faces, List<Vector3>>
-{
+    {
     { Faces.FRONT, new List<Vector3> {
         new Vector3(0.0f, 1.0f, 1.0f),  // Top-left 1 GOOD
         new Vector3(1.0f, 1.0f, 1.0f),  // Top-right 2

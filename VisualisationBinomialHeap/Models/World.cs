@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace MyMinecraft.Models; 
 public class World {
-    public Dictionary<string, Chunk> allChunks = new();
+    public ConcurrentDictionary<string, Chunk> allChunks = new();
     public ConcurrentBag<Chunk> forRendering = new();
     
     public int renderDistance = 3;
@@ -19,8 +19,9 @@ public class World {
     public void UpdateChunkRanderList(Vector3 pos) {
         //RemoveFarChunks(pos);
         //AddChunksToRender(pos);
+        RemoveFarChunks(pos);
+        //GC.Collect();
         Task.Run(() => {
-            RemoveFarChunks(pos);
             AddChunksToRender(pos);
         });
 
@@ -31,8 +32,8 @@ public class World {
     private void AddChunksToRender(Vector3 pos) {
         readyToRender = false;
         var currChunkPos = Camera.GetChunkPos(pos);
+        var chunkID = $"{currChunkPos.X}, {currChunkPos.Z}";
         Chunk.ConvertToWorldCoords(ref currChunkPos);
-        var chunkID = $"{currChunkPos.X}, {currChunkPos.Y}, {currChunkPos.Z}";
         Console.WriteLine($"World::currChunkID: {chunkID}");
         Chunk? toAdd = new();
 
@@ -56,7 +57,8 @@ public class World {
                     
                     Console.WriteLine($"World::currCunkPosition:{copyChunkPos}");
                     toAdd = new(copyChunkPos);
-                    allChunks.Add(chunkID, toAdd);
+                    if (allChunks.TryAdd(chunkID, toAdd))
+                        Console.WriteLine("Saved chunk succesfully");
                 }
                 else
                     Console.WriteLine($"Loaded chunk: {chunkID}");
@@ -169,8 +171,12 @@ public class World {
 
         var newForRendering = new ConcurrentBag<Chunk>(forRendering.Except(toRemove));
         forRendering = newForRendering;
-        
-        //foreach (var chunk in toRemove)
-        //    chunk.ClearBlockFaceData();
+
+        foreach (var chunk in toRemove)
+            chunk.Delete();
+    }
+
+    private void ClearFaceData(ConcurrentBag<Chunk> chunks) {
+
     }
 }

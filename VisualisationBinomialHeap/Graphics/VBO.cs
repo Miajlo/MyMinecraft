@@ -6,7 +6,7 @@ public class VBO {
         ID = GL.GenBuffer();
         GL.BindBuffer(BufferTarget.ArrayBuffer, ID);
         GL.BufferData(BufferTarget.ArrayBuffer, data.Count * Vector3.SizeInBytes,
-                      data.ToArray(), BufferUsageHint.StaticDraw);
+                      data.ToArray(), BufferUsageHint.DynamicDraw);
 
     }
 
@@ -14,7 +14,7 @@ public class VBO {
         ID = GL.GenBuffer();
         GL.BindBuffer(BufferTarget.ArrayBuffer, ID);
         GL.BufferData(BufferTarget.ArrayBuffer, data.Count * Vector2.SizeInBytes,
-                      data.ToArray(), BufferUsageHint.StaticDraw);
+                      data.ToArray(), BufferUsageHint.DynamicDraw);
     }
 
     public void Bind() {

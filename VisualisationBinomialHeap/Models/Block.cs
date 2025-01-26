@@ -4,7 +4,7 @@
 public class Block {
     public Vector3 position;
     public BlockType Type;
-    private Dictionary<Faces, FaceData> faces;
+    private Dictionary<Faces, FaceData>? faces;
 
     List<Vector2> dirtUV = new() {
         new(0f, 1f),
@@ -18,7 +18,7 @@ public class Block {
 
         Type = type;
 
-        faces = CreateFaces();
+        faces = new();
     }
 
     public Dictionary<Faces, FaceData> CreateFaces() {
@@ -65,10 +65,19 @@ public class Block {
         return transformedVerteces;
     }
 
-    public FaceData GetFace(Faces face) {
-        faces ??= CreateFaces();
+    public void AddFace(Faces face) {
+        faces ??= new();
+        
+        if (!faces.ContainsKey(face))
+            faces.Add(face, new(AddTransformedVertices(FaceData.rawVertexData[face]), dirtUV));
+        else
+            Console.WriteLine("Block.AddFace: Face alreadt added");
+    }
 
-        return faces[face];
+    public FaceData GetFace(Faces face) {
+        //faces ??= CreateFaces();
+
+        return faces![face];
     }
 
     public void ClearFaceData() {

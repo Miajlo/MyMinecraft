@@ -22,15 +22,17 @@ public class Camera {
     private bool isFirstMove = true;
     public Vector2 lastPosition;
 
+    WeakReference<World> worldRef;
     public Vector3 position;
     public Vector3 lastChunkPos = (-500, 0, -500);
     Vector3 up = Vector3.UnitY;
     Vector3 front = - Vector3.UnitZ;
     Vector3 right = Vector3.UnitX;
-    public Camera(float width, float height, Vector3 pos) {
+    public Camera(float width, float height, Vector3 pos, WeakReference<World> worldd) {
         Width = width;
         Height = height;
         position = pos;
+        worldRef = worldd;
     }
     public Matrix4 GetViewMatrix() {
         return Matrix4.LookAt(position, position + front, up);
@@ -238,12 +240,18 @@ public class Camera {
 
         string chunkID = $"{Chunk.ConvertPosToChunkID(position)}";
 
-        if (!Window.world.allChunks.TryGetValue(chunkID, out forChekin)) {
+        var world = GetWorld();
+
+        if (world == null) {
+            Console.WriteLine("Camera.CheckForCollision: world was null");
+            return false;
+        }
+        if (!world!.allChunks.TryGetValue(chunkID, out forChekin)) {
             Console.WriteLine($"Specified chunk not yer generated, ID: {chunkID}");
             return false;
         }
 
-        if (!Window.world.forRendering.Contains(forChekin)) {
+        if (!world!.forRendering.Contains(forChekin)) {
             Console.WriteLine($"Current chunk not loaded, ID: {chunkID}");
             return false;
         }
@@ -254,6 +262,13 @@ public class Camera {
             return true;
 
         return false;
+    }
+
+    public World? GetWorld() {
+        if (worldRef.TryGetTarget(out World? world))
+            return world;
+        else
+            return null;
     }
 
     private void PrintCurrentPosition() {

@@ -9,7 +9,7 @@ public class Window : GameWindow {
     private int Height;
 
     public int renderDistance = 4;
-    public static World world = new();
+    public World world = new();
     
     Camera? camera;
 
@@ -42,7 +42,7 @@ public class Window : GameWindow {
         GL.CullFace(CullFaceMode.Back); // or Front, depending on which faces should be culled
         GL.DepthFunc(DepthFunction.Less); // or another appropriate depth function
 
-        camera = new(Width, Height, (1 , 66, 1));
+        camera = new(Width, Height, (1 , 66, 1), new WeakReference<World>(world));
         CursorState = CursorState.Grabbed;
     }
 
