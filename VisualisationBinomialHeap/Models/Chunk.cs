@@ -1,11 +1,11 @@
 ﻿namespace MyMinecraft.Models; 
 public class Chunk {
-    public string? ID;
+    //public string? ID;
     public bool firstDrawing = true;
     public List<Vector3> chunkVert = new();
     public List<Vector2> chunkUVs = new();
     public List<uint> chunkInd = new();
-
+    
     public const int SIZE = 16;
     public const int HEIGHT = 16;
 
@@ -16,6 +16,9 @@ public class Chunk {
     public uint indexCount;
     public bool Built { get; set; } = false;
     public bool Rendered { get; set; } = false;
+
+    public byte neighbours = 0b_0000;
+
     VAO chunkVAO;
     VBO chunkVBO;
     VBO chunkUVVBO;
@@ -27,7 +30,7 @@ public class Chunk {
 
     }
 
-    public Chunk(Vector3 pos) {
+    public Chunk(Vector3 pos, byte neibours = 0b_1111) {
        
 
         //ID = $"{(pos.X + 16 * Math.Sign(pos.X) )/ 16 + 1}," +
@@ -36,17 +39,17 @@ public class Chunk {
 
 
         position = pos;
-        ID = ConvertPosToChunkID(position);
-        Console.WriteLine($"Chunk::ID: {ID}");
+        neighbours = neibours;
+        //ID = ConvertPosToChunkID(position);
+        Console.WriteLine($"Chunk::ID: {position}");
        
         Console.WriteLine($"Chunk::ChunkPosition:{position}");
         GenChunk();
         AddFaces();
-        Console.WriteLine($"Generated chunk: [ {ID} ]");
+        Console.WriteLine($"Generated chunk: [ {position} ]");
         //BuildChunk();
-        Console.WriteLine($"Built chunk: [ {ID} ]");
+        Console.WriteLine($"Built chunk: [ {position} ]");
 
-        
     }
 
     private void AddFaces() {
@@ -58,23 +61,24 @@ public class Chunk {
                     //IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
                     //IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
                     //IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
-
+                    
 
                     if (chunkBlocks[x, y, z].Type != BlockType.EMPTY) {
                         uint addedFaces = 0; // Reset for each block
 
                         // Left face
-                        if (x == 0 || chunkBlocks[x - 1, y, z].Type == BlockType.EMPTY) {
+                        bool addCurrentFace = (neighbours & 0b_0001) != 0;
+                        if (!addCurrentFace && (x == 0 || chunkBlocks[x - 1, y, z].Type == BlockType.EMPTY)) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
                             addedFaces++;
                         }
-
+                        addCurrentFace = (neighbours & 0b_0100) != 0;
                         // Right face
-                        if (x == SIZE - 1 || chunkBlocks[x + 1, y, z].Type == BlockType.EMPTY) {
+                        if (!addCurrentFace && (x == SIZE - 1 || chunkBlocks[x + 1, y, z].Type == BlockType.EMPTY)) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
                             addedFaces++;
                         }
-
+                        
                         // Bottom face
                         if (y == 0 || chunkBlocks[x, y - 1, z].Type == BlockType.EMPTY) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
@@ -86,15 +90,15 @@ public class Chunk {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
                             addedFaces++;
                         }
-
+                        addCurrentFace = (neighbours & 0b_0010) != 0;
                         // Back face
-                        if (z == 0 || chunkBlocks[x, y, z - 1].Type == BlockType.EMPTY) {
+                        if (!addCurrentFace && (z == 0 || chunkBlocks[x, y, z - 1].Type == BlockType.EMPTY)) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
                             addedFaces++;
                         }
-
+                        addCurrentFace = (neighbours & 0b_1000) != 0;
                         // Front face
-                        if (z == SIZE - 1 || chunkBlocks[x, y, z + 1].Type == BlockType.EMPTY) {
+                        if (!addCurrentFace && (z == SIZE - 1 || chunkBlocks[x, y, z + 1].Type == BlockType.EMPTY)) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
                             addedFaces++;
                         }
@@ -199,7 +203,7 @@ public class Chunk {
                         DrawElementsType.UnsignedInt, 0);
 
         if (firstDrawing) {
-            Console.WriteLine($"Drew chunk: [ {ID} ]");
+            Console.WriteLine($"Drew chunk: [ {position} ]");
             firstDrawing = false;
         } 
 
@@ -262,11 +266,11 @@ public class Chunk {
     }
 
     public void Delete() {
-        GL.DeleteBuffer(chunkVBO.ID);  // Explicitly delete buffer
-        GL.DeleteBuffer(chunkUVVBO.ID);
-        GL.DeleteVertexArray(chunkVAO.ID);
-        GL.DeleteBuffer(chunkIBO.ID);
-        GL.DeleteTexture(texture.ID);  // Explicitly delete texture
+        GL.DeleteBuffer(chunkVBO!.ID);  // Explicitly delete buffer
+        GL.DeleteBuffer(chunkUVVBO!.ID);
+        GL.DeleteVertexArray(chunkVAO!.ID);
+        GL.DeleteBuffer(chunkIBO!.ID);
+        GL.DeleteTexture(texture!.ID);  // Explicitly delete texture
         GL.Finish();
 
         chunkInd.Clear();

@@ -114,7 +114,7 @@ public class Camera {
 
         if (input.IsKeyDown(Keys.F3) && input.IsKeyDown(Keys.G) && !chunkBordersflag) {
             showChunkBorders = !showChunkBorders;
-            Console.WriteLine($"Collision checks set to: {showChunkBorders}");
+            Console.WriteLine($"Show Chunk Borders: {showChunkBorders}");
             chunkBordersflag = true;
         }
         else if (input.IsKeyReleased(Keys.F3) && input.IsKeyReleased(Keys.G)) {
