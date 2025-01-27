@@ -1,5 +1,5 @@
 ﻿namespace MyMinecraft.Graphics; 
-public class VBO {
+public class VBO : IDisposable {
     public int ID;
 
     public VBO(List<Vector3> data) {
@@ -26,5 +26,10 @@ public class VBO {
 
     public void Delete() {
         GL.DeleteBuffer(ID);
+    }
+
+    public void Dispose() {
+        Delete();
+        GC.SuppressFinalize(this);
     }
 }

@@ -1,5 +1,5 @@
 ﻿namespace MyMinecraft.Graphics; 
-public class IBO {
+public class IBO :IDisposable {
     public int ID;
 
     public IBO(List<uint> data) {
@@ -18,5 +18,10 @@ public class IBO {
 
     public void Delete() {
         GL.DeleteBuffer(ID);
+    }
+
+    public void Dispose() {
+        Delete();
+        GC.SuppressFinalize(this);
     }
 }

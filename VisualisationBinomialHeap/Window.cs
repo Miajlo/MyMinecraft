@@ -82,8 +82,7 @@ public class Window : GameWindow {
   
         world.RenderChunks(shaderProgram);
 
-        if (camera.showChunkBorders)
-            world.DrawChunkBorders(shaderProgram, camera.position);
+        
 
         Context.SwapBuffers();
         base.OnRenderFrame(args);
@@ -102,8 +101,9 @@ public class Window : GameWindow {
             world.UpdateChunkRanderList(camera.position);
             camera.lastChunkPos =  Camera.GetChunkPos(camera.position);
         }
-        
-        
+
+        if (camera.showChunkBorders)
+            world.DrawChunkBorders(shaderProgram, camera.position);
         //CheckForCollision();
     }
 }

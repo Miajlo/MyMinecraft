@@ -3,14 +3,14 @@ using System.Collections.Concurrent;
 
 namespace MyMinecraft.Models; 
 public class World {
-    public ConcurrentDictionary<string, Chunk> allChunks = new();
-    public ConcurrentBag<Chunk> forRendering = new();
+    public ConcurrentDictionary<Vector3, Chunk> allChunks = new();
+    public ConcurrentQueue<Chunk> forRendering = new();
     
     public int renderDistance = 3;
     public bool readyToRender = false;
     public object locker = new();
     public void AddChunk(Chunk chunk) {
-        if (allChunks.TryAdd(chunk.ID!, chunk))
+        if (allChunks.TryAdd(chunk.position, chunk))
             Console.WriteLine($"Succesfully saved chunk: {chunk.ID}");
         else
             Console.WriteLine($"Error adding chunk: {chunk.ID}");
@@ -32,9 +32,9 @@ public class World {
     private void AddChunksToRender(Vector3 pos) {
         readyToRender = false;
         var currChunkPos = Camera.GetChunkPos(pos);
-        var chunkID = $"{currChunkPos.X}, {currChunkPos.Z}";
+        //var chunkID = $"{currChunkPos.X}, {currChunkPos.Z}";
         Chunk.ConvertToWorldCoords(ref currChunkPos);
-        Console.WriteLine($"World::currChunkID: {chunkID}");
+        //Console.WriteLine($"World::currChunkID: {chunkID}");
         Chunk? toAdd = new();
 
         int renderBound = renderDistance;
@@ -51,19 +51,19 @@ public class World {
             for(int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
                 //Console.WriteLine($"i = {i}, j = {j}");
                 Vector3 copyChunkPos = new(i, 0, j);
-                chunkID = Chunk.ConvertPosToChunkID(copyChunkPos);
+                
 
-                if (!allChunks.TryGetValue(chunkID, out toAdd)) {
+                if (!allChunks.TryGetValue(copyChunkPos, out toAdd)) {
                     
                     Console.WriteLine($"World::currCunkPosition:{copyChunkPos}");
                     toAdd = new(copyChunkPos);
-                    if (allChunks.TryAdd(chunkID, toAdd))
+                    if (allChunks.TryAdd(copyChunkPos, toAdd))
                         Console.WriteLine("Saved chunk succesfully");
                 }
                 else
-                    Console.WriteLine($"Loaded chunk: {chunkID}");
+                    Console.WriteLine($"Loaded chunk: {copyChunkPos}");
                 if (!forRendering.Contains(toAdd)) {
-                    forRendering.Add(toAdd);
+                    forRendering.Enqueue(toAdd);
                 }
                 ++totalIterations;
             }
@@ -169,11 +169,13 @@ public class World {
             }
         }
 
-        var newForRendering = new ConcurrentBag<Chunk>(forRendering.Except(toRemove));
+        var newForRendering = new ConcurrentQueue<Chunk>(forRendering.Except(toRemove));
         forRendering = newForRendering;
 
-        foreach (var chunk in toRemove)
+        foreach (var chunk in toRemove) {
             chunk.Delete();
+            allChunks.TryRemove(chunk.position, out _);
+        }
     }
 
     private void ClearFaceData(ConcurrentBag<Chunk> chunks) {

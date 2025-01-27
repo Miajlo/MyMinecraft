@@ -239,15 +239,19 @@ public class Camera {
 
 
         string chunkID = $"{Chunk.ConvertPosToChunkID(position)}";
-
+        Vector3 chunkPos = new(
+                             (position.X - position.X % 16),
+                             0,
+                             (position.Z - position.Z % 16)
+                         );
         var world = GetWorld();
 
         if (world == null) {
             Console.WriteLine("Camera.CheckForCollision: world was null");
             return false;
         }
-        if (!world!.allChunks.TryGetValue(chunkID, out forChekin)) {
-            Console.WriteLine($"Specified chunk not yer generated, ID: {chunkID}");
+        if (!world!.allChunks.TryGetValue(chunkPos, out forChekin)) {
+            Console.WriteLine($"Specified chunk not yer generated, ID: {chunkPos}");
             return false;
         }
 

@@ -6,12 +6,6 @@ public class Block {
     public BlockType Type;
     private Dictionary<Faces, FaceData>? faces;
 
-    List<Vector2> dirtUV = new() {
-        new(0f, 1f),
-        new(1f, 1f),
-        new(1f, 0f),
-        new(0f, 0f),
-    };
 
     public Block(Vector3 pos, BlockType type = BlockType.EMPTY) {
         position = pos;
@@ -25,33 +19,27 @@ public class Block {
         return new() {
             {
                 Faces.FRONT,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.FRONT]),
-                   dirtUV)
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.FRONT]))
             },
             {
                 Faces.BACK,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BACK]),
-                    dirtUV)
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BACK]))
             },
             {
                 Faces.LEFT,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.LEFT])
-                , dirtUV)
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.LEFT]))
             },
             {
                 Faces.RIGHT,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.RIGHT])
-                , dirtUV)
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.RIGHT]))
             },
             {
                 Faces.TOP,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.TOP]),
-                 dirtUV)
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.TOP]))
             },
             {
                 Faces.BOTTOM,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BOTTOM]),
-                 dirtUV)
+                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BOTTOM]))
             }
         };
     }
@@ -69,7 +57,7 @@ public class Block {
         faces ??= new();
         
         if (!faces.ContainsKey(face))
-            faces.Add(face, new(AddTransformedVertices(FaceData.rawVertexData[face]), dirtUV));
+            faces.Add(face, new(AddTransformedVertices(FaceData.rawVertexData[face])));
         else
             Console.WriteLine("Block.AddFace: Face alreadt added");
     }

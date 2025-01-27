@@ -1,4 +1,6 @@
-﻿namespace MyMinecraft.Models;
+﻿using System.Collections.Generic;
+
+namespace MyMinecraft.Models;
 
 public enum BlockType : byte {
     EMPTY,
@@ -15,12 +17,18 @@ public enum Faces :byte {
     BOTTOM
 }
 
+
+public struct TextureData {
+    public static readonly Dictionary<BlockType, List<Vector2>> blockUVs = new() {
+        { BlockType.DIRT, new() {new(0f, 1f), new(1f, 1f), new(1f, 0f), new(0f, 0f),} },
+
+    };
+}
+
 public struct FaceData {
     public List<Vector3>? vertices;
-    public List<Vector2>? uvs;
-    public FaceData(List<Vector3> list, List<Vector2> text) {
+    public FaceData(List<Vector3> list) {
         vertices = list;
-        uvs = text;
     }
     public static readonly Dictionary<Faces, List<Vector3>> rawVertexData = new Dictionary<Faces, List<Vector3>>
     {

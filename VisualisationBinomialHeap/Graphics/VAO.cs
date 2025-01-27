@@ -1,5 +1,5 @@
 ﻿namespace MyMinecraft.Graphics; 
-public class VAO {
+public class VAO : IDisposable {
     public int ID;
     public VAO() {
         ID = GL.GenVertexArray();
@@ -24,5 +24,10 @@ public class VAO {
 
     public void Delete() {
         GL.DeleteVertexArray(ID);
+    }
+
+    public void Dispose() {
+        Delete();
+        GC.SuppressFinalize(this);
     }
 }

@@ -117,7 +117,7 @@ public class Chunk {
                 Random rnd = new Random();
                 for (int j = 0; j < SIZE; ++j) {
                     Block block = new(new(i, y, j), y < 16
-                                                      ? BlockType.STONE
+                                                      ? BlockType.DIRT
                                                       : BlockType.EMPTY); ;
 
                     chunkBlocks[i, y, j] = block;
@@ -139,7 +139,7 @@ public class Chunk {
         block.AddFace(face);
         var faceData = block.GetFace(face);
         chunkVert.AddRange(faceData.vertices!);
-        chunkUVs.AddRange(faceData!.uvs!);
+        chunkUVs.AddRange(TextureData.blockUVs[block.Type]);
     }
 
     public void AddInceces(uint indCount) {
@@ -262,14 +262,16 @@ public class Chunk {
     }
 
     public void Delete() {
-        chunkIBO.Delete();
-        chunkVAO.Delete();
-        chunkVBO.Delete();
-        texture.Delete();
+        GL.DeleteBuffer(chunkVBO.ID);  // Explicitly delete buffer
+        GL.DeleteBuffer(chunkUVVBO.ID);
+        GL.DeleteVertexArray(chunkVAO.ID);
+        GL.DeleteBuffer(chunkIBO.ID);
+        GL.DeleteTexture(texture.ID);  // Explicitly delete texture
+        GL.Finish();
 
-        chunkInd = null;
-        chunkVert = null;
-        chunkUVs = null;
+        chunkInd.Clear();
+        chunkVert.Clear();
+        chunkUVs.Clear();
 
         indexCount = 0;
 
