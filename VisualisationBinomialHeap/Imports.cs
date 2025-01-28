@@ -8,3 +8,5 @@ global using OpenTK.Windowing.GraphicsLibraryFramework;
 global using StbImageSharp;
 global using MyMinecraft.Models;
 global using MyMinecraft.Graphics;
+global using System.Collections.Concurrent;
+global using MyMinecraft.Utils;

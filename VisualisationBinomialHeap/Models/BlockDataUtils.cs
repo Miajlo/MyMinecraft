@@ -19,8 +19,16 @@ public enum Faces :byte {
 
 
 public struct TextureData {
+    public const float textureSize = 0.25f;
     public static readonly Dictionary<BlockType, List<Vector2>> blockUVs = new() {
-        { BlockType.DIRT, new() {new(0f, 1f), new(1f, 1f), new(1f, 0f), new(0f, 0f),} },
+        { BlockType.DIRT, new() 
+        {
+            new(0f, 1f),
+            new(1f, 1f),
+            new(1f, 0f),
+            new(0f, 0f),
+        } 
+        },
 
     };
 }

@@ -1,7 +1,4 @@
-﻿using MyMinecraft.Graphics;
-using System.Collections.Concurrent;
-
-namespace MyMinecraft.Models; 
+﻿namespace MyMinecraft.Models; 
 public class World {
     public ConcurrentDictionary<Vector3, Chunk> allChunks = new();
     public ConcurrentQueue<Chunk> forRendering = new();
@@ -45,7 +42,8 @@ public class World {
         int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
         int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
 
-  
+        
+
 
         for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
             for(int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
