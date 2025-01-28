@@ -42,8 +42,7 @@ public class World {
         int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
         int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
 
-        
-
+  
 
         for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
             for(int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {

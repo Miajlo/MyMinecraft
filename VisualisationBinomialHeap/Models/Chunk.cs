@@ -7,7 +7,7 @@ public class Chunk {
     public List<uint> chunkInd = new();
     public byte[,] heightMap = new byte[SIZE,SIZE];
     public const byte SIZE = 16;
-    public const byte HEIGHT = 32;
+    public const byte HEIGHT = 64;
 
     public Vector3 position;
 
