@@ -120,7 +120,7 @@ public class Chunk {
     public void GenHeightMap() {
         FastNoiseLite fnl = new();
         fnl.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
-        fnl.SetFrequency(0.01f);
+        fnl.SetFrequency(0.03f);
         for (var x=0; x<SIZE;++x ) {
             for(var z=0; z<SIZE; ++z) {
                 float noiseValue = fnl.GetNoise(x+position.X, z+position.Z);
@@ -158,7 +158,7 @@ public class Chunk {
         block.AddFace(face);
         var faceData = block.GetFace(face);
         chunkVert.AddRange(faceData.vertices!);
-        chunkUVs.AddRange(TextureData.blockUVs[block.Type][face]);
+        chunkUVs.AddRange(TextureData.GetUVs(block.Type, face));
     }
 
     public void AddInceces(uint indCount) {

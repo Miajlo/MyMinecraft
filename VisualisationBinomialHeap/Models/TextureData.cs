@@ -1,29 +1,53 @@
-﻿//using System.Numerics;
-
-namespace MyMinecraft.Models;
-public class TextureData {
-    public const float txtSize = 0.25f;
-    public static Dictionary<BlockType, Dictionary<Faces, List<Vector2>>> blockUVs = new() {
-      { BlockType.DIRT, new()
-            {
-            { Faces.FRONT, new() { new(0, 1.0f), new(0, 0.75f), new(0.25f, 0.75f), new(0.25f, 1.0f) } },
-            { Faces.BACK, new() { new(0, 1.0f), new(0, 0.75f), new(0.25f, 0.75f), new(0.25f, 1.0f) } },
-            { Faces.LEFT, new() { new(0, 1.0f), new(0, 0.75f), new(0.25f, 0.75f), new(0.25f, 1.0f) } },
-            { Faces.RIGHT, new() { new(0, 1.0f), new(0, 0.75f), new(0.25f, 0.75f), new(0.25f, 1.0f) } },
-            { Faces.TOP, new() { new(0, 1.0f), new(0, 0.75f), new(0.25f, 0.75f), new(0.25f, 1.0f) } },
-            { Faces.BOTTOM, new() { new(0, 1.0f), new(0, 0.75f), new(0.25f, 0.75f), new(0.25f, 1.0f) } }
-            }
-        },
-       { BlockType.GRASS_BLOCK, new()
-            {
-            { Faces.FRONT, new() { new(0.5f, 1.0f), new(0.5f, 0.75f), new(0.75f, 0.75f), new(0.75f, 1.0f) } },
-            { Faces.BACK, new() { new(0.5f, 1.0f), new(0.5f, 0.75f), new(0.75f, 0.75f), new(0.75f, 1.0f) } },
-            { Faces.LEFT, new() { new(0.5f, 1.0f), new(0.5f, 0.75f), new(0.75f, 0.75f), new(0.75f, 1.0f) } },
-            { Faces.RIGHT, new() { new(0.5f, 1.0f), new(0.5f, 0.75f), new(0.75f, 0.75f), new(0.75f, 1.0f) } },
-            { Faces.TOP, new() { new(0.75f, 1.0f), new(0.75f, 0.75f), new(1.0f, 0.75f), new(1.0f, 1.0f) } },
-            { Faces.BOTTOM, new() { new(0, 1.0f), new(0, 0.75f), new(0.25f, 0.75f), new(0.25f, 1.0f) } }
-            }
-        }
+﻿public class TextureData {
+    public const float txtSize = 1.0f;
+    public static Dictionary<BlockType, Dictionary<Faces, Vector2>> blockUVs = new() {
+        { BlockType.DIRT, new() {
+            { Faces.FRONT, new(0.0f, 3.0f) },
+            { Faces.BACK, new(0.0f, 3.0f) },
+            { Faces.LEFT, new(0.0f, 3.0f) },
+            { Faces.RIGHT, new(0.0f, 3.0f) },
+            { Faces.TOP, new(0.0f, 3.0f) },
+            { Faces.BOTTOM, new(0.0f, 3.0f) }
+        }},
+        { BlockType.GRASS_BLOCK, new() {
+            { Faces.FRONT, new(2.0f, 3.0f) },
+            { Faces.BACK, new(2.0f, 3.0f) },
+            { Faces.LEFT, new(2.0f, 3.0f) },
+            { Faces.RIGHT, new(2.0f, 3.0f) },
+            { Faces.TOP, new(3.0f, 3.0f) },
+            { Faces.BOTTOM, new(0.0f, 3.0f) }
+        }}
     };
 
+    public static List<Vector2> GetUVs(BlockType type, Faces face) {
+        if (!blockUVs.TryGetValue(type, out var faceUVs) || !faceUVs.TryGetValue(face, out var topLeft)) {
+            throw new KeyNotFoundException($"UV coordinates not found for {type} - {face}");
+        }
+
+
+        if (face == Faces.BACK) {
+            return new() {
+            new Vector2(topLeft.X, topLeft.Y + 1) / 4,//tl
+            new Vector2(topLeft.X, topLeft.Y) / 4,//bl
+            new Vector2(topLeft.X + 1, topLeft.Y) / 4, //br       // Flip horizontally for BACK/LEFT
+            new Vector2(topLeft.X + 1, topLeft.Y + 1) / 4,//tr
+            };
+        }
+
+        if(face == Faces.LEFT) {
+            return new() {
+            new Vector2(topLeft.X + 1, topLeft.Y + 1) / 4,//tr
+            new Vector2(topLeft.X + 1, topLeft.Y) / 4, //br       // Flip horizontally for BACK/LEFT
+            new Vector2(topLeft.X, topLeft.Y) / 4,//bl
+            new Vector2(topLeft.X, topLeft.Y + 1) / 4,//tl
+            };
+        }
+
+        return new() {
+            new Vector2(topLeft.X / 4f, (topLeft.Y + 1f) / 4f),//tl
+            new Vector2((topLeft.X + 1f) / 4f, (topLeft.Y + 1f) / 4f), //tr
+            new Vector2((topLeft.X + 1f) / 4f, topLeft.Y / 4f),//br
+            new Vector2(topLeft.X / 4f, topLeft.Y / 4f),//bl
+        };
+    }
 }
