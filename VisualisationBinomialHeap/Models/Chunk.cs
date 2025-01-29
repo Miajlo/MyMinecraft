@@ -1,4 +1,4 @@
-﻿namespace MyMinecraft.Models; 
+﻿namespace MyMinecraft.Models;
 public class Chunk {
     //public string? ID;
     public bool firstDrawing = true;
@@ -324,7 +324,7 @@ public class Chunk {
         if (height == heightMap[x, z])
             return BlockType.GRASS_BLOCK;
         else if (height < heightMap[x, z])
-            return BlockType.DIRT;
+            return BlockType.STONE;
         else
             return BlockType.AIR;
     }
