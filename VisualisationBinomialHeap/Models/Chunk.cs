@@ -65,42 +65,42 @@ public class Chunk {
 
                     //neighbours = 0b_0000;
 
-                    if (chunkBlocks[x, y, z].Type != BlockType.EMPTY) {
+                    if (chunkBlocks[x, y, z].Type != BlockType.AIR) {
                         uint addedFaces = 0; // Reset for each block
 
                         // Left face
                         bool addCurrentFace = (neighbours & 0b_0001) != 0 && x == 0;
-                        if (!addCurrentFace && (x == 0 || chunkBlocks[x - 1, y, z].Type == BlockType.EMPTY)) {
+                        if (!addCurrentFace && (x == 0 || chunkBlocks[x - 1, y, z].Type == BlockType.AIR)) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
                             addedFaces++;
                         }
                         addCurrentFace = (neighbours & 0b_0100) != 0 && x == SIZE-1;
                         // Right face
-                        if (!addCurrentFace && (x == SIZE - 1 || chunkBlocks[x + 1, y, z].Type == BlockType.EMPTY)) {
+                        if (!addCurrentFace && (x == SIZE - 1 || chunkBlocks[x + 1, y, z].Type == BlockType.AIR)) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
                             addedFaces++;
                         }
                         
                         // Bottom face
-                        if (y == 0 || chunkBlocks[x, y - 1, z].Type == BlockType.EMPTY) {
+                        if (y == 0 || chunkBlocks[x, y - 1, z].Type == BlockType.AIR) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
                             addedFaces++;
                         }
 
                         // Top face
-                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z].Type == BlockType.EMPTY) {
+                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z].Type == BlockType.AIR) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
                             addedFaces++;
                         }
                         addCurrentFace = (neighbours & 0b_0010) != 0 && z == 0;
                         // Back face
-                        if (!addCurrentFace && (z == 0 || chunkBlocks[x, y, z - 1].Type == BlockType.EMPTY)) {
+                        if (!addCurrentFace && (z == 0 || chunkBlocks[x, y, z - 1].Type == BlockType.AIR)) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
                             addedFaces++;
                         }
                         addCurrentFace = (neighbours & 0b_1000) != 0 && z == SIZE-1;
                         // Front face
-                        if (!addCurrentFace && (z == SIZE - 1 || chunkBlocks[x, y, z + 1].Type == BlockType.EMPTY)) {
+                        if (!addCurrentFace && (z == SIZE - 1 || chunkBlocks[x, y, z + 1].Type == BlockType.AIR)) {
                             IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
                             addedFaces++;
                         }
@@ -124,7 +124,7 @@ public class Chunk {
         for (var x=0; x<SIZE;++x ) {
             for(var z=0; z<SIZE; ++z) {
                 float noiseValue = fnl.GetNoise(x+position.X, z+position.Z);
-                heightMap[x,z] = (byte)(((noiseValue + 1)) * HEIGHT-2);
+                heightMap[x, z] = (byte)Math.Clamp(((noiseValue + 1) * 0.5f) * HEIGHT, 0, HEIGHT - 1);
             }
         }
     }
@@ -136,9 +136,7 @@ public class Chunk {
             for (int z = 0; z < SIZE; ++z) {              
                 for (int y = 0; y < HEIGHT; ++y) {
                     
-                    Block block = new(new Vector3(x, y, z), y < heightMap[x, z]
-                                                      ? BlockType.DIRT
-                                                      : BlockType.EMPTY); ;
+                    Block block = new(new Vector3(x, y, z), GetBlockType(y,x,z));
                     
 
                     chunkBlocks[x, y, z] = block;
@@ -160,7 +158,7 @@ public class Chunk {
         block.AddFace(face);
         var faceData = block.GetFace(face);
         chunkVert.AddRange(faceData.vertices!);
-        chunkUVs.AddRange(TextureData.blockUVs[block.Type]);
+        chunkUVs.AddRange(TextureData.blockUVs[block.Type][face]);
     }
 
     public void AddInceces(uint indCount) {
@@ -198,7 +196,7 @@ public class Chunk {
         chunkIBO = new(chunkInd);
         chunkIBO.Bind();
 
-        texture = new("../../../Resources/MyGrassBlockSide.png");
+        texture = new("../../../Resources/TextureAtlas.png");
 
         Built = true;
     }
@@ -320,5 +318,14 @@ public class Chunk {
             --currChunkPos.Z;
 
         currChunkPos *= Chunk.SIZE;
+    }
+
+    private BlockType GetBlockType(int height, int x, int z) {
+        if (height == heightMap[x, z])
+            return BlockType.GRASS_BLOCK;
+        else if (height < heightMap[x, z])
+            return BlockType.DIRT;
+        else
+            return BlockType.AIR;
     }
 }

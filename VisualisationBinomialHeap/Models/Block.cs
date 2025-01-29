@@ -7,7 +7,7 @@ public class Block {
     private Dictionary<Faces, FaceData>? faces;
 
 
-    public Block(Vector3 pos, BlockType type = BlockType.EMPTY) {
+    public Block(Vector3 pos, BlockType type = BlockType.AIR) {
         position = pos;
 
         Type = type;
