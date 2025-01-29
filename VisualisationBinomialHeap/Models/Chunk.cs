@@ -15,16 +15,16 @@ public class Chunk {
 
     public uint indexCount;
     public bool Built { get; set; } = false;
-    public bool Rendered { get; set; } = false;
+    public bool AddedFaces { get; set; } = false;
 
     public byte neighbours = 0b_0000;
 
-    VAO chunkVAO;
-    VBO chunkVBO;
-    VBO chunkUVVBO;
-    IBO chunkIBO;
+    VAO? chunkVAO;
+    VBO? chunkVBO;
+    VBO? chunkUVVBO;
+    IBO? chunkIBO;
 
-    Texture texture;
+    Texture? texture;
 
     public Chunk() {
 
@@ -46,7 +46,7 @@ public class Chunk {
         Console.WriteLine($"Chunk::ChunkPosition:{position}");
         GenHeightMap();
         GenChunk();
-        AddFaces();
+        //AddFaces();
         Console.WriteLine($"Generated chunk: [ {position} ]");
         //BuildChunk();
         Console.WriteLine($"Built chunk: [ {position} ]");
@@ -117,6 +117,10 @@ public class Chunk {
         chunkUVs.TrimExcess();
     }
 
+    public void AddFacesWithMesh() {
+
+    }
+
     public void GenHeightMap() {
         FastNoiseLite fnl = new();
         fnl.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
@@ -179,7 +183,7 @@ public class Chunk {
         chunkVert ??= new();
         chunkUVs ??= new();
 
-        if (!Built && !firstDrawing)
+        if (!Built)
             AddFaces();
 
         chunkVAO = new();
@@ -205,14 +209,14 @@ public class Chunk {
         if (!Built)
             BuildChunk();
 
-        program.Bind();
-        chunkVAO.Bind();
-        chunkIBO.Bind();
+        program?.Bind();
+        chunkVAO?.Bind();
+        chunkIBO?.Bind();
         Matrix4 model = Matrix4.CreateTranslation(position);
         int modelLocation = GL.GetUniformLocation(program.ID, "model");
         GL.UniformMatrix4(modelLocation, true, ref model);
         GL.ActiveTexture(TextureUnit.Texture0);
-        texture.Bind();
+        texture?.Bind();
         GL.Uniform1(GL.GetUniformLocation(program.ID, "texture0"), 0);
         GL.DrawElements(PrimitiveType.Triangles, chunkInd.Count,
                         DrawElementsType.UnsignedInt, 0);
@@ -222,11 +226,11 @@ public class Chunk {
             firstDrawing = false;
         } 
 
-        texture.Unbind();
-        chunkVAO.Unbind();
-        chunkIBO.Unbind();
-        chunkUVVBO.Unbind();
-        chunkVBO.Unbind();
+        texture?.Unbind();
+        chunkVAO?.Unbind();
+        chunkIBO?.Unbind();
+        chunkUVVBO?.Unbind();
+        chunkVBO?.Unbind();
     }
 
     public Vector3 NormalizedChunkPos {
@@ -273,19 +277,20 @@ public class Chunk {
     }
 
     public void Unload() {
-        chunkIBO.Unbind();
-        chunkVAO.Unbind();
-        chunkVBO.Unbind();
-        texture.Unbind();
+        chunkIBO?.Unbind();
+        chunkVAO?.Unbind();
+        chunkVBO?.Unbind();
+        texture?.Unbind();
         Built = false;
     }
 
     public void Delete() {
-        GL.DeleteBuffer(chunkVBO!.ID);  // Explicitly delete buffer
-        GL.DeleteBuffer(chunkUVVBO!.ID);
-        GL.DeleteVertexArray(chunkVAO!.ID);
-        GL.DeleteBuffer(chunkIBO!.ID);
-        GL.DeleteTexture(texture!.ID);  // Explicitly delete texture
+        chunkVBO?.Delete();
+        chunkUVVBO?.Delete();
+        chunkVAO?.Delete();
+        chunkIBO?.Delete();
+        texture?.Delete();
+        //GL.DeleteTexture(texture!.ID);  // Explicitly delete texture
         GL.Finish();
 
         chunkInd.Clear();
@@ -328,4 +333,5 @@ public class Chunk {
         else
             return BlockType.AIR;
     }
+
 }

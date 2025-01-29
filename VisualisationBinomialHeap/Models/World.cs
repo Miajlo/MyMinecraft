@@ -75,6 +75,8 @@ public class World {
                 if (!forRendering.Contains(toAdd)) {
                     forRendering.Enqueue(toAdd);
                 }
+
+                MeshChunks();
                 ++totalIterations;
             }
             
@@ -82,12 +84,19 @@ public class World {
         Console.WriteLine($"TotalIterations: {totalIterations}");
     }
 
+    private void MeshChunks() {
+        foreach(var chunk in forRendering) {
+            List<byte[,]> neighbourHeightmap = new();
+
+        }
+    }
+
     public void RenderChunks(ShaderProgram program) {      
         foreach (var chunk in forRendering) {
             if (!chunk.Built)
                 chunk.BuildChunk();
             chunk.Render(program);
-            chunk.Rendered = true;
+            chunk.AddedFaces = true;
         }      
     }
 
@@ -209,5 +218,27 @@ public class World {
     }
     private void ClearFaceData(ConcurrentBag<Chunk> chunks) {
 
+    }
+
+    private List<byte[,]> GetNeighboursHeightMap(Vector3 chunkPos) {
+        List<byte[,]> retVal = new();
+        Vector3 neighbourPos = new(chunkPos.X, chunkPos.Y, chunkPos.Z+16);
+        if (allChunks.TryGetValue(neighbourPos, out Chunk? neighbour))
+            retVal.Add(neighbour.heightMap);
+
+        neighbourPos = new(chunkPos.X+16, chunkPos.Y, chunkPos.Z);
+        if (allChunks.TryGetValue(neighbourPos, out neighbour))
+            retVal.Add(neighbour.heightMap);
+
+        neighbourPos= new(chunkPos.X, chunkPos.Y, chunkPos.Z-16);
+        if (allChunks.TryGetValue(neighbourPos, out neighbour))
+            retVal.Add(neighbour.heightMap);
+
+        neighbourPos = new(chunkPos.X-16, chunkPos.Y, chunkPos.Z);
+        if (allChunks.TryGetValue(neighbourPos, out neighbour))
+            retVal.Add(neighbour.heightMap);
+
+
+        return retVal;
     }
 }
