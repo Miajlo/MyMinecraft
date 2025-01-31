@@ -126,7 +126,7 @@ public class Chunk {
     public void GenHeightMap() {
         FastNoiseLite fnl = new();
         fnl.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
-        fnl.SetFrequency(0.03f);
+        fnl.SetFrequency(0.01f);
         for (var x=0; x<SIZE;++x ) {
             for(var z=0; z<SIZE; ++z) {
                 float noiseValue = fnl.GetNoise(x+position.X, z+position.Z);

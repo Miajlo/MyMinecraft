@@ -11,7 +11,7 @@ public class Camera {
     private bool genChunksFlag = false;
     private bool chunkBordersflag = false;
     #endregion
-    public float Speed = 8f;
+    public float Speed = 15f;
     private float Width;
     private float Height;
     private float Sensitivity = 180f;

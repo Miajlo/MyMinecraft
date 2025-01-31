@@ -90,7 +90,10 @@ public class World {
     private void MeshChunks() {
         
         foreach(var chunk in allChunks.Values) {
-            for(var x=0;x<Chunk.SIZE;++x) {
+            if (chunk.AddedFaces == true)
+                continue;
+
+            for(var x=0;x<Chunk.SIZE;++x) {                
                 for(var z=0; z<Chunk.SIZE; ++z) {
                     for(var y=0;y<Chunk.HEIGHT; ++y) {
                         if (chunk.chunkBlocks[x, y, z] != BlockType.AIR) {

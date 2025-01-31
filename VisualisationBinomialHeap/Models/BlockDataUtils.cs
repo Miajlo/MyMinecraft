@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace MyMinecraft.Models;
+﻿namespace MyMinecraft.Models;
 
 public enum BlockType : byte {
     AIR,
