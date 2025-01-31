@@ -1,4 +1,6 @@
-﻿namespace MyMinecraft.Models; 
+﻿using System.Drawing;
+
+namespace MyMinecraft.Models; 
 public class World {
     public ConcurrentDictionary<Vector3, Chunk> allChunks = new();
     public ConcurrentQueue<Chunk> forRendering = new();
@@ -42,7 +44,6 @@ public class World {
         int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
         int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
 
-  
 
         for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
             for(int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
@@ -72,22 +73,86 @@ public class World {
                     Console.WriteLine($"Loaded chunk: {copyChunkPos}");
                     toAdd.neighbours = chunkNeighbours;
                 }
-                if (!forRendering.Contains(toAdd)) {
-                    forRendering.Enqueue(toAdd);
-                }
+                //if (!forRendering.Contains(toAdd)) {
+                //    forRendering.Enqueue(toAdd);
+                //}
 
-                MeshChunks();
+                
                 ++totalIterations;
             }
             
         }
+        MeshChunks();
+
         Console.WriteLine($"TotalIterations: {totalIterations}");
     }
 
     private void MeshChunks() {
-        foreach(var chunk in forRendering) {
-            List<byte[,]> neighbourHeightmap = new();
+        
+        foreach(var chunk in allChunks.Values) {
+            for(var x=0;x<Chunk.SIZE;++x) {
+                for(var z=0; z<Chunk.SIZE; ++z) {
+                    for(var y=0;y<Chunk.HEIGHT; ++y) {
+                        if (chunk.chunkBlocks[x, y, z] != BlockType.AIR) {
+                            uint addedFaces = 0; // Reset for each block
+                            Vector3 blockPos = new(x, y, z);
+                            // Left face
+                            Vector3 neighbourBlockPos = new(Chunk.SIZE-1,y,z);
+                            Vector3 neighbourChunkPos = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z);
+                            BlockType neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
 
+                            if (neighbourBlock==BlockType.AIR && (x == 0 || chunk.chunkBlocks[x - 1, y, z] == BlockType.AIR)) {
+                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.LEFT, blockPos);
+                                addedFaces++;
+                            }
+                            neighbourBlockPos = new(0, y, z);
+                            neighbourChunkPos = new(chunk.position.X+16, chunk.position.Y, chunk.position.Z);
+                            neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
+                            // Right face
+                            if (neighbourBlock==BlockType.AIR && (x == Chunk.SIZE - 1 || chunk.chunkBlocks[x + 1, y, z] == BlockType.AIR)) {
+                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.RIGHT, blockPos);
+                                addedFaces++;
+                            }
+
+                            // Bottom face
+                            if (y == 0 || chunk.chunkBlocks[x, y - 1, z] == BlockType.AIR) {
+                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.BOTTOM, blockPos);
+                                addedFaces++;
+                            }
+
+                            // Top face
+                            if (y == Chunk.HEIGHT - 1 || chunk.chunkBlocks[x, y + 1, z] == BlockType.AIR) {
+                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.TOP, blockPos);
+                                addedFaces++;
+                            }
+                            neighbourBlockPos = new(x, y, Chunk.SIZE-1);
+                            neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z-16);
+                            neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
+                            // Back face
+                            if (neighbourBlock == BlockType.AIR && (z == 0 || chunk.chunkBlocks[x, y, z - 1] == BlockType.AIR)) {
+                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.BACK, blockPos);
+                                addedFaces++;
+                            }
+                            neighbourBlockPos = new(x, y, 0);
+                            neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z+16);
+                            neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
+                            // Front face
+                            if (neighbourBlock == BlockType.AIR && (z == Chunk.SIZE - 1 || chunk.chunkBlocks[x, y, z + 1] == BlockType.AIR)) {
+                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.FRONT, blockPos);
+                                addedFaces++;
+                            }
+
+                            // Add indices for the added faces
+                            chunk.AddInceces(addedFaces);
+                            //chunkBlocks[x, y, z].ClearFaceData();
+                            chunk.AddedFaces = true;
+                        }
+                    }
+                }
+            }
+            if (!forRendering.Contains(chunk)) {
+                forRendering.Enqueue(chunk);
+            }
         }
     }
 
@@ -241,4 +306,15 @@ public class World {
 
         return retVal;
     }
+
+    public BlockType GetBlockAt(Vector3 chunkPos, Vector3 blockPos) {
+
+        if (!allChunks.TryGetValue(chunkPos, out Chunk? chunk))
+            return BlockType.AIR;
+
+        
+
+        return chunk.chunkBlocks[(int)blockPos.X, (int)blockPos.Y, (int)blockPos.Z];
+    }
+
 }

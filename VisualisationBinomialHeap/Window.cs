@@ -52,6 +52,7 @@ public class Window : GameWindow {
         shaderProgram.Delete();
         foreach (var c in world.allChunks)
             c.Value.Delete();
+        Texture.Delete();
     }
 
     protected override void OnResize(ResizeEventArgs e) {

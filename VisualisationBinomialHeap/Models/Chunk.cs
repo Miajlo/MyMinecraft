@@ -7,7 +7,7 @@ public class Chunk {
     public List<uint> chunkInd = new();
     public byte[,] heightMap = new byte[SIZE,SIZE];
     public const byte SIZE = 16;
-    public const byte HEIGHT = 255;
+    public const byte HEIGHT = 64;
 
     public Vector3 position;
 
@@ -17,6 +17,8 @@ public class Chunk {
     public bool Built { get; set; } = false;
     public bool AddedFaces { get; set; } = false;
 
+    public bool ReDraw { get; set; } = false;
+
     public byte neighbours = 0b_0000;
 
     VAO? chunkVAO;
@@ -24,7 +26,7 @@ public class Chunk {
     VBO? chunkUVVBO;
     IBO? chunkIBO;
 
-    Texture? texture;
+    //Texture? texture;
 
     public Chunk() {
 
@@ -200,7 +202,7 @@ public class Chunk {
         chunkIBO = new(chunkInd);
         chunkIBO.Bind();
 
-        texture = new("../../../Resources/TextureAtlas.png");
+        
 
         Built = true;
     }
@@ -216,7 +218,7 @@ public class Chunk {
         int modelLocation = GL.GetUniformLocation(program.ID, "model");
         GL.UniformMatrix4(modelLocation, true, ref model);
         GL.ActiveTexture(TextureUnit.Texture0);
-        texture?.Bind();
+        Texture.Bind();
         GL.Uniform1(GL.GetUniformLocation(program.ID, "texture0"), 0);
         GL.DrawElements(PrimitiveType.Triangles, chunkInd.Count,
                         DrawElementsType.UnsignedInt, 0);
@@ -226,7 +228,7 @@ public class Chunk {
             firstDrawing = false;
         } 
 
-        texture?.Unbind();
+        Texture.Unbind();
         chunkVAO?.Unbind();
         chunkIBO?.Unbind();
         chunkUVVBO?.Unbind();
@@ -280,7 +282,7 @@ public class Chunk {
         chunkIBO?.Unbind();
         chunkVAO?.Unbind();
         chunkVBO?.Unbind();
-        texture?.Unbind();
+        Texture.Unbind();
         Built = false;
     }
 
@@ -289,7 +291,7 @@ public class Chunk {
         chunkUVVBO?.Delete();
         chunkVAO?.Delete();
         chunkIBO?.Delete();
-        texture?.Delete();
+        //texture?.Delete();
         //GL.DeleteTexture(texture!.ID);  // Explicitly delete texture
         GL.Finish();
 
