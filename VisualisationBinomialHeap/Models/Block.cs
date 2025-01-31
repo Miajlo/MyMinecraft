@@ -19,32 +19,32 @@ public class Block {
         return new() {
             {
                 Faces.FRONT,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.FRONT]))
+                new(GetTransformedVertices(FaceData.rawVertexData[Faces.FRONT]))
             },
             {
                 Faces.BACK,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BACK]))
+                new(GetTransformedVertices(FaceData.rawVertexData[Faces.BACK]))
             },
             {
                 Faces.LEFT,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.LEFT]))
+                new(GetTransformedVertices(FaceData.rawVertexData[Faces.LEFT]))
             },
             {
                 Faces.RIGHT,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.RIGHT]))
+                new(GetTransformedVertices(FaceData.rawVertexData[Faces.RIGHT]))
             },
             {
                 Faces.TOP,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.TOP]))
+                new(GetTransformedVertices(FaceData.rawVertexData[Faces.TOP]))
             },
             {
                 Faces.BOTTOM,
-                new(AddTransformedVertices(FaceData.rawVertexData[Faces.BOTTOM]))
+                new(GetTransformedVertices(FaceData.rawVertexData[Faces.BOTTOM]))
             }
         };
     }
 
-    public List<Vector3> AddTransformedVertices(List<Vector3> verteces) {
+    public List<Vector3> GetTransformedVertices(List<Vector3> verteces) {
         List<Vector3> transformedVerteces = new();
 
         foreach (var v in verteces)
@@ -57,7 +57,7 @@ public class Block {
         faces ??= new();
         
         if (!faces.ContainsKey(face))
-            faces.Add(face, new(AddTransformedVertices(FaceData.rawVertexData[face])));
+            faces.Add(face, new(GetTransformedVertices(FaceData.rawVertexData[face])));
         else
             Console.WriteLine("Block.AddFace: Face alreadt added");
     }
@@ -70,5 +70,18 @@ public class Block {
 
     public void ClearFaceData() {
         faces = null;
+    }
+
+    private static List<Vector3> GetTransformedVertices(Faces face, Vector3 position) {
+        List<Vector3> transformedVerteces = new();
+
+        foreach (var v in FaceData.rawVertexData[face])
+            transformedVerteces.Add(v + position);
+
+        return transformedVerteces;
+    }
+
+    public static List<Vector3> GetFaceData(Faces face, Vector3 position) {
+        return GetTransformedVertices(face, position);
     }
 }

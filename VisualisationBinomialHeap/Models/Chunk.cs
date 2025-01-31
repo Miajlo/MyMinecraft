@@ -7,11 +7,11 @@ public class Chunk {
     public List<uint> chunkInd = new();
     public byte[,] heightMap = new byte[SIZE,SIZE];
     public const byte SIZE = 16;
-    public const byte HEIGHT = 64;
+    public const byte HEIGHT = 255;
 
     public Vector3 position;
 
-    public Block[,,] chunkBlocks = new Block[SIZE,HEIGHT,SIZE]; 
+    public BlockType[,,] chunkBlocks = new BlockType[SIZE,HEIGHT,SIZE]; 
 
     public uint indexCount;
     public bool Built { get; set; } = false;
@@ -65,49 +65,49 @@ public class Chunk {
 
                     //neighbours = 0b_0000;
 
-                    if (chunkBlocks[x, y, z].Type != BlockType.AIR) {
+                    if (chunkBlocks[x, y, z] != BlockType.AIR) {
                         uint addedFaces = 0; // Reset for each block
-
+                        Vector3 blockPos = new(x, y, z);
                         // Left face
                         bool addCurrentFace = (neighbours & 0b_0001) != 0 && x == 0;
-                        if (!addCurrentFace && (x == 0 || chunkBlocks[x - 1, y, z].Type == BlockType.AIR)) {
-                            IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT);
+                        if (!addCurrentFace && (x == 0 || chunkBlocks[x - 1, y, z] == BlockType.AIR)) {
+                            IntegrateFace(chunkBlocks[x, y, z], Faces.LEFT, blockPos);
                             addedFaces++;
                         }
                         addCurrentFace = (neighbours & 0b_0100) != 0 && x == SIZE-1;
                         // Right face
-                        if (!addCurrentFace && (x == SIZE - 1 || chunkBlocks[x + 1, y, z].Type == BlockType.AIR)) {
-                            IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT);
+                        if (!addCurrentFace && (x == SIZE - 1 || chunkBlocks[x + 1, y, z] == BlockType.AIR)) {
+                            IntegrateFace(chunkBlocks[x, y, z], Faces.RIGHT, blockPos);
                             addedFaces++;
                         }
                         
                         // Bottom face
-                        if (y == 0 || chunkBlocks[x, y - 1, z].Type == BlockType.AIR) {
-                            IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM);
+                        if (y == 0 || chunkBlocks[x, y - 1, z] == BlockType.AIR) {
+                            IntegrateFace(chunkBlocks[x, y, z], Faces.BOTTOM, blockPos);
                             addedFaces++;
                         }
 
                         // Top face
-                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z].Type == BlockType.AIR) {
-                            IntegrateFace(chunkBlocks[x, y, z], Faces.TOP);
+                        if (y == HEIGHT - 1 || chunkBlocks[x, y + 1, z] == BlockType.AIR) {
+                            IntegrateFace(chunkBlocks[x, y, z], Faces.TOP, blockPos);
                             addedFaces++;
                         }
                         addCurrentFace = (neighbours & 0b_0010) != 0 && z == 0;
                         // Back face
-                        if (!addCurrentFace && (z == 0 || chunkBlocks[x, y, z - 1].Type == BlockType.AIR)) {
-                            IntegrateFace(chunkBlocks[x, y, z], Faces.BACK);
+                        if (!addCurrentFace && (z == 0 || chunkBlocks[x, y, z - 1] == BlockType.AIR)) {
+                            IntegrateFace(chunkBlocks[x, y, z], Faces.BACK, blockPos);
                             addedFaces++;
                         }
                         addCurrentFace = (neighbours & 0b_1000) != 0 && z == SIZE-1;
                         // Front face
-                        if (!addCurrentFace && (z == SIZE - 1 || chunkBlocks[x, y, z + 1].Type == BlockType.AIR)) {
-                            IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT);
+                        if (!addCurrentFace && (z == SIZE - 1 || chunkBlocks[x, y, z + 1] == BlockType.AIR)) {
+                            IntegrateFace(chunkBlocks[x, y, z], Faces.FRONT, blockPos);
                             addedFaces++;
                         }
 
                         // Add indices for the added faces
                         AddInceces(addedFaces);
-                        chunkBlocks[x, y, z].ClearFaceData();
+                        //chunkBlocks[x, y, z].ClearFaceData();
                     }
                 }
             }
@@ -140,10 +140,10 @@ public class Chunk {
             for (int z = 0; z < SIZE; ++z) {              
                 for (int y = 0; y < HEIGHT; ++y) {
                     
-                    Block block = new(new Vector3(x, y, z), GetBlockType(y,x,z));
+                    //Block block = new(new Vector3(x, y, z), GetBlockType(y,x,z));
                     
 
-                    chunkBlocks[x, y, z] = block;
+                    chunkBlocks[x, y, z] = GetBlockType(y, x, z);
 
                     //IntegrateFace(block, Faces.FRONT);
                     //IntegrateFace(block, Faces.BACK);
@@ -158,11 +158,11 @@ public class Chunk {
         }
     }
 
-    public void IntegrateFace(Block block, Faces face) {
-        block.AddFace(face);
-        var faceData = block.GetFace(face);
-        chunkVert.AddRange(faceData.vertices!);
-        chunkUVs.AddRange(TextureData.GetUVs(block.Type, face));
+    public void IntegrateFace(BlockType block, Faces face, Vector3 blockPos) {
+        //block.AddFace(face);
+        var faceData = Block.GetFaceData(face, blockPos);
+        chunkVert.AddRange(faceData);
+        chunkUVs.AddRange(TextureData.GetUVs(block, face));
     }
 
     public void AddInceces(uint indCount) {
@@ -307,7 +307,7 @@ public class Chunk {
         {
             for (int i = 0; i < SIZE; ++i) {
                 for (int j = 0; j < SIZE; ++j) {
-                    chunkBlocks[i, y, j].ClearFaceData();
+                    //chunkBlocks[i, y, j].ClearFaceData();
                 }
             }
         });

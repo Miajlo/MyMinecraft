@@ -262,7 +262,7 @@ public class Camera {
         //Console.WriteLine($"Checking in chunk: {chunkID}");
         //Console.WriteLine($"Checking block: {x}, {0}, {z}");
 
-        if (forChekin.chunkBlocks[x,(int)nextPosition.Y * Math.Sign(nextPosition.Y), z].Type != BlockType.AIR)
+        if (forChekin.chunkBlocks[x,(int)nextPosition.Y * Math.Sign(nextPosition.Y), z] != BlockType.AIR)
             return true;
 
         return false;
