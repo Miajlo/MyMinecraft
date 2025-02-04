@@ -1,12 +1,16 @@
 ﻿using MyMinecraft.Unused;
 using OpenTK.Compute.OpenCL;
 using MyMinecraft.Graphics;
+using System.Diagnostics;
 
 namespace MyMinecraft;
 
 public class Window : GameWindow {
     private int Width;
     private int Height;
+
+    private Stopwatch stopwatch;
+    private int frameCount;
 
     public int renderDistance = 4;
     public World world = new();
@@ -20,7 +24,9 @@ public class Window : GameWindow {
         Height = height;
         Width = width;
         this.Title = title;
-        
+        stopwatch = new();
+        stopwatch.Start();
+        frameCount = 0;
     }
 
     protected override void OnLoad() {
@@ -85,6 +91,20 @@ public class Window : GameWindow {
 
         if (camera.showChunkBorders)
             world.DrawChunkBorders(shaderProgram, camera.position);
+
+
+        frameCount++;
+
+        // If one second (or more) has passed, calculate FPS and update title
+        if (stopwatch.ElapsedMilliseconds >= 1000) {
+            double fps = frameCount / (stopwatch.ElapsedMilliseconds / 1000.0);
+            // Reset for next calculation:
+            Title = $"OpenGL Application - FPS: {fps}";
+            frameCount = 0;
+            stopwatch.Restart();
+        }
+
+
 
         Context.SwapBuffers();
         base.OnRenderFrame(args);

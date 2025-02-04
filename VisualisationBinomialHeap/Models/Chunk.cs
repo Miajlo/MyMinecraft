@@ -17,7 +17,7 @@ public class Chunk {
     public bool Built { get; set; } = false;
     public bool AddedFaces { get; set; } = false;
 
-    public bool ReDraw { get; set; } = false;
+    public bool ReDraw { get; set; } = true;
 
     public byte neighbours = 0b_0000;
 
@@ -126,7 +126,7 @@ public class Chunk {
     public void GenHeightMap() {
         FastNoiseLite fnl = new();
         fnl.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
-        fnl.SetFrequency(0.01f);
+        fnl.SetFrequency(0.04f);
         for (var x=0; x<SIZE;++x ) {
             for(var z=0; z<SIZE; ++z) {
                 float noiseValue = fnl.GetNoise(x+position.X, z+position.Z);
@@ -185,8 +185,8 @@ public class Chunk {
         chunkVert ??= new();
         chunkUVs ??= new();
 
-        if (!Built)
-            AddFaces();
+        //if (!Built)
+        //    AddFaces();
 
         chunkVAO = new();
         chunkVAO.Bind();

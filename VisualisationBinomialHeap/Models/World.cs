@@ -36,13 +36,13 @@ public class World {
         //Console.WriteLine($"World::currChunkID: {chunkID}");
         Chunk? toAdd = new();
 
-        int renderBound = renderDistance;
+        int offset = renderDistance * Chunk.SIZE;
         int totalIterations = 0;
 
-        int XbottomBound = (int)(currChunkPos.X) - (renderBound - 1) * Chunk.SIZE; 
-        int ZbottomBound = (int)(currChunkPos.Z) - (renderBound - 1) * Chunk.SIZE;
-        int XtopBound = XbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
-        int ZtopBound = ZbottomBound + (renderBound + 1) * Chunk.SIZE * Math.Sign(renderBound-1);
+        int XbottomBound = (int)(currChunkPos.X) - offset; 
+        int ZbottomBound = (int)(currChunkPos.Z) - offset;
+        int XtopBound = XbottomBound + 2*offset;
+        int ZtopBound = ZbottomBound + 2*offset;
 
 
         for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
@@ -90,7 +90,7 @@ public class World {
     private void MeshChunks() {
         
         foreach(var chunk in allChunks.Values) {
-            if (chunk.AddedFaces == true)
+            if (chunk.AddedFaces)
                 continue;
 
             for(var x=0;x<Chunk.SIZE;++x) {                
@@ -104,7 +104,7 @@ public class World {
                             Vector3 neighbourChunkPos = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z);
                             BlockType neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
 
-                            if (neighbourBlock==BlockType.AIR && (x == 0 || chunk.chunkBlocks[x - 1, y, z] == BlockType.AIR)) {
+                            if ((neighbourBlock==BlockType.AIR && x==0) || (x!=0 && chunk.chunkBlocks[x - 1, y, z] == BlockType.AIR)) {
                                 chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.LEFT, blockPos);
                                 addedFaces++;
                             }
@@ -112,7 +112,7 @@ public class World {
                             neighbourChunkPos = new(chunk.position.X+16, chunk.position.Y, chunk.position.Z);
                             neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                             // Right face
-                            if (neighbourBlock==BlockType.AIR && (x == Chunk.SIZE - 1 || chunk.chunkBlocks[x + 1, y, z] == BlockType.AIR)) {
+                            if ((neighbourBlock==BlockType.AIR && x == Chunk.SIZE - 1) || (x != Chunk.SIZE-1 && chunk.chunkBlocks[x + 1, y, z] == BlockType.AIR)) {
                                 chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.RIGHT, blockPos);
                                 addedFaces++;
                             }
@@ -132,7 +132,7 @@ public class World {
                             neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z-16);
                             neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                             // Back face
-                            if (neighbourBlock == BlockType.AIR && (z == 0 || chunk.chunkBlocks[x, y, z - 1] == BlockType.AIR)) {
+                            if ((neighbourBlock == BlockType.AIR && z == 0)|| (z != 0 && chunk.chunkBlocks[x, y, z - 1] == BlockType.AIR)) {
                                 chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.BACK, blockPos);
                                 addedFaces++;
                             }
@@ -140,7 +140,7 @@ public class World {
                             neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z+16);
                             neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                             // Front face
-                            if (neighbourBlock == BlockType.AIR && (z == Chunk.SIZE - 1 || chunk.chunkBlocks[x, y, z + 1] == BlockType.AIR)) {
+                            if ((neighbourBlock == BlockType.AIR && z == Chunk.SIZE - 1 ) || (z != Chunk.SIZE-1 && chunk.chunkBlocks[x, y, z + 1] == BlockType.AIR)) {
                                 chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.FRONT, blockPos);
                                 addedFaces++;
                             }
@@ -149,6 +149,7 @@ public class World {
                             chunk.AddInceces(addedFaces);
                             //chunkBlocks[x, y, z].ClearFaceData();
                             chunk.AddedFaces = true;
+                            chunk.ReDraw = false;
                         }
                     }
                 }
@@ -261,10 +262,31 @@ public class World {
 
         foreach (var chunk in toRemove) {
             chunk.Delete();
-            UpdateChunkNeighbourFlag(chunk.position);
+            //MarkNeighboursForReDraw(chunk.position);
             allChunks.TryRemove(chunk.position, out _);
         }
     }
+
+    private void MarkNeighboursForReDraw(Vector3 position) {
+        Vector3 checkPos = new(position.X+16, position.Y, position.Z);
+        Chunk? neighbour;
+        if (allChunks.TryGetValue(checkPos, out neighbour)) {
+            neighbour.ReDraw = true;
+        }
+        checkPos = new(position.X, position.Y, position.Z-16);
+        if (allChunks.TryGetValue(checkPos, out neighbour)) {
+            neighbour.ReDraw = true;
+        }
+        checkPos = new(position.X, position.Y, position.Z+16);
+        if (allChunks.TryGetValue(checkPos, out neighbour)) {
+            neighbour.ReDraw = true;
+        }
+        checkPos = new(position.X-16, position.Y, position.Z);
+        if (allChunks.TryGetValue(checkPos, out neighbour)) {
+            neighbour.ReDraw = true;
+        }
+    }
+
     private void UpdateChunkNeighbourFlag(Vector3 position) {
         Vector3 checkPos = new(position.X+16, position.Y, position.Z);
         Chunk? neighbour;
