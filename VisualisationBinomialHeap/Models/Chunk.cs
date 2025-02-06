@@ -211,7 +211,15 @@ public class Chunk {
         if (!Built)
             BuildChunk();
 
+        Vector3 lightDirection = new Vector3(-0.5f, -1.0f, -0.5f); // Light coming from top-left
+        Vector3 lightColor = new Vector3(1.0f, 1.0f, 1.0f); // White light
+        Vector3 ambientColor = new Vector3(0.2f, 0.2f, 0.2f); // Soft ambient light
+
         program?.Bind();
+        GL.Uniform3(GL.GetUniformLocation(program.ID, "lightDir"), lightDirection);
+        GL.Uniform3(GL.GetUniformLocation(program.ID, "lightColor"), lightColor);
+        GL.Uniform3(GL.GetUniformLocation(program.ID, "ambientColor"), ambientColor);
+
         chunkVAO?.Bind();
         chunkIBO?.Bind();
         Matrix4 model = Matrix4.CreateTranslation(position);
