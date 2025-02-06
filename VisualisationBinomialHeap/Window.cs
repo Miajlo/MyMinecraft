@@ -87,7 +87,7 @@ public class Window : GameWindow {
         //if(world.readyToRender)
 
   
-        world.RenderChunks(shaderProgram);
+        world.RenderChunks(shaderProgram, view*camera.GetFrustumProjectionMatrix());
 
         if (camera.showChunkBorders)
             world.DrawChunkBorders(shaderProgram, camera.position);

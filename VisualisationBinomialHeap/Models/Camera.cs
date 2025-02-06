@@ -39,10 +39,16 @@ public class Camera {
     }
     public Matrix4 GetProjectionMatrix() {
         return Matrix4.CreatePerspectiveFieldOfView(
-            MathHelper.DegreesToRadians(45.0f),
-            Width / Height, 0.1f, 100.0f);
+            MathHelper.DegreesToRadians(GameConfig.FoV),
+            Width / Height, GameConfig.NearPlane, GameConfig.FarPlane);
     }
     
+    public Matrix4 GetFrustumProjectionMatrix() {
+        return Matrix4.CreatePerspectiveFieldOfView(
+           MathHelper.DegreesToRadians(GameConfig.FoV*1.2f),
+           Width / Height, GameConfig.NearPlane, GameConfig.FarPlane);
+    }
+
     private void UpdateVectors() {
         if (pitch > 89.0f)
             pitch = 89.0f;

@@ -1,6 +1,4 @@
-﻿using System.Drawing;
-
-namespace MyMinecraft.Models; 
+﻿namespace MyMinecraft.Models; 
 public class World {
     public ConcurrentDictionary<Vector3, Chunk> allChunks = new();
     public ConcurrentQueue<Chunk> forRendering = new();
@@ -90,7 +88,7 @@ public class World {
     private void MeshChunks() {
         
         foreach(var chunk in allChunks.Values) {
-            if (chunk.AddedFaces)
+            if (chunk.AddedFaces || !chunk.ReDraw)
                 continue;
 
             for(var x=0;x<Chunk.SIZE;++x) {                
@@ -160,8 +158,20 @@ public class World {
         }
     }
 
-    public void RenderChunks(ShaderProgram program) {      
+    public void RenderChunks(ShaderProgram program, Matrix4 projection) {
+        Frustum frustum = new();
+        frustum.ExtractFrustumPlanes(projection);
+
         foreach (var chunk in forRendering) {
+            Vector3 leftCase = new(chunk.position.X+16, chunk.position.Y, chunk.position.Z+16);
+            Vector3 rightCase = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z-16);
+            if (!IsInsideFrustum(chunk.position, frustum) && !IsInsideFrustum(leftCase,frustum) &&
+                !IsInsideFrustum(rightCase,frustum))
+                continue;
+
+
+            if (chunk.ReDraw)
+                continue;
             if (!chunk.Built)
                 chunk.BuildChunk();
             chunk.Render(program);
@@ -272,18 +282,22 @@ public class World {
         Chunk? neighbour;
         if (allChunks.TryGetValue(checkPos, out neighbour)) {
             neighbour.ReDraw = true;
+            neighbour.Delete();
         }
         checkPos = new(position.X, position.Y, position.Z-16);
         if (allChunks.TryGetValue(checkPos, out neighbour)) {
             neighbour.ReDraw = true;
+            neighbour.Delete();
         }
         checkPos = new(position.X, position.Y, position.Z+16);
         if (allChunks.TryGetValue(checkPos, out neighbour)) {
             neighbour.ReDraw = true;
+            neighbour.Delete();
         }
         checkPos = new(position.X-16, position.Y, position.Z);
         if (allChunks.TryGetValue(checkPos, out neighbour)) {
             neighbour.ReDraw = true;
+            neighbour.Delete();
         }
     }
 
@@ -342,4 +356,14 @@ public class World {
         return chunk.chunkBlocks[(int)blockPos.X, (int)blockPos.Y, (int)blockPos.Z];
     }
 
+
+    public bool IsInsideFrustum(Vector3 position, Frustum frustum) {
+        foreach (var plane in frustum.GetPlanes()) {
+            float distance = Vector3.Dot(plane.Normal, position) + plane.D;
+            if (distance < 0) {
+                return false; // The point is outside one of the planes
+            }
+        }
+        return true; // The point is inside all planes
+    }
 }
