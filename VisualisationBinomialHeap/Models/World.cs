@@ -3,7 +3,7 @@ public class World {
     public ConcurrentDictionary<Vector3, Chunk> allChunks = new();
     public ConcurrentQueue<Chunk> forRendering = new();
     
-    public int renderDistance = 3;
+    public int renderDistance = 1;
     public bool readyToRender = false;
     public object locker = new();
     public void AddChunk(Chunk chunk) {
@@ -85,7 +85,7 @@ public class World {
         Console.WriteLine($"TotalIterations: {totalIterations}");
     }
 
-    private void MeshChunks() {
+    public void MeshChunks() {
         
         foreach(var chunk in allChunks.Values) {
             if (chunk.AddedFaces || !chunk.ReDraw)
@@ -170,8 +170,8 @@ public class World {
                 continue;
 
 
-            if (chunk.ReDraw)
-                continue;
+            //if (chunk.ReDraw)
+            //    continue;
             if (!chunk.Built)
                 chunk.BuildChunk();
             chunk.Render(program);

@@ -129,6 +129,11 @@ public class Camera {
         else if (input.IsKeyReleased(Keys.F3))
             f3Pressed = false;
 
+
+        if(mouse.IsButtonPressed(MouseButton.Left)) {
+            DestryBlock();
+        }
+
         if (isFirstMove) {
             lastPosition = new(mouse.X, mouse.Y);
             isFirstMove = false;
@@ -143,6 +148,85 @@ public class Camera {
             pitch -= dY * Sensitivity * (float)e.Time;
         }
        UpdateVectors();
+    }
+
+    private void DestryBlock() {
+        World? world = GetWorld();
+        if (world == null)
+            return;
+
+        Vector3 hitNormal = new();
+      
+        int x = (int)Math.Floor(position.X);
+        int y = (int)Math.Floor(position.Y);
+        int z = (int)Math.Floor(position.Z);
+
+        int stepX = front.X < 0 ? -1 : 1;
+        int stepY = front.Y < 0 ? -1 : 1;
+        int stepZ = front.Z < 0 ? -1 : 1;
+
+        float tMaxX = ((x + (stepX > 0 ? 1 : 0)) - position.X) / front.X;
+        float tMaxY = ((y + (stepY > 0 ? 1 : 0)) - position.Y) / front.Y;
+        float tMaxZ = ((z + (stepZ > 0 ? 1 : 0)) - position.Z) / front.Z;
+
+        float tDeltaX = Math.Abs(1 / front.X);
+        float tDeltaY = Math.Abs(1 / front.Y);
+        float tDeltaZ = Math.Abs(1 / front.Z);
+
+        float maxDistance = 5.0f; // Limit to 5 blocks
+        float traveledDistance = 0.0f;
+
+        for(int i=0; i< 100; ++i) {
+            Vector3 chunkPos = GetChunkPos(position);
+            Chunk.ConvertToWorldCoords(ref chunkPos);
+            
+            Vector3 chunkBlockPos = Chunk.ConvertToChunkBlockCoord(new Vector3(x, y, z));
+
+
+            // Check if the chunk exists in the dictionary
+            if (world.allChunks.TryGetValue(chunkPos, out Chunk chunk)) {
+                // Retrieve the block type at the calculated block position
+                BlockType block = chunk.GetBlockAt(chunkBlockPos);
+
+                // If the block is solid (not air), stop the raycast and register the hit
+                 if (block != BlockType.AIR) {
+                    Console.WriteLine($"Hit block: {chunkBlockPos} {chunkPos}");
+                    chunk.SetBlockAt(chunkBlockPos, BlockType.AIR);
+                    chunk.ReDraw = true;
+                    chunk.AddedFaces = false;
+                    chunk.Delete();
+                    world.MeshChunks();
+                    break;
+                }
+            }
+
+            // Determine next voxel step and distance
+            if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+                traveledDistance = tMaxX;
+                tMaxX += tDeltaX;
+                x += stepX;
+                hitNormal = new Vector3(-stepX, 0, 0);
+            }
+            else if (tMaxY < tMaxZ) {
+                traveledDistance = tMaxY;
+                tMaxY += tDeltaY;
+                y += stepY;
+                hitNormal = new Vector3(0, -stepY, 0);
+            }
+            else {
+                traveledDistance = tMaxZ;
+                tMaxZ += tDeltaZ;
+                z += stepZ;
+                hitNormal = new Vector3(0, 0, -stepZ);
+            }
+
+            // Stop if we exceed the max distance (5 blocks)
+            if (traveledDistance > maxDistance)
+                break;
+        }
+
+       
+
     }
 
     private void DPressedHandle(FrameEventArgs e) {

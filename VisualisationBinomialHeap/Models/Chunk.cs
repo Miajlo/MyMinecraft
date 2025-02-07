@@ -211,14 +211,8 @@ public class Chunk {
         if (!Built)
             BuildChunk();
 
-        Vector3 lightDirection = new Vector3(-0.5f, -1.0f, -0.5f); // Light coming from top-left
-        Vector3 lightColor = new Vector3(1.0f, 1.0f, 1.0f); // White light
-        Vector3 ambientColor = new Vector3(0.2f, 0.2f, 0.2f); // Soft ambient light
-
         program?.Bind();
-        GL.Uniform3(GL.GetUniformLocation(program.ID, "lightDir"), lightDirection);
-        GL.Uniform3(GL.GetUniformLocation(program.ID, "lightColor"), lightColor);
-        GL.Uniform3(GL.GetUniformLocation(program.ID, "ambientColor"), ambientColor);
+      
 
         chunkVAO?.Bind();
         chunkIBO?.Bind();
@@ -344,4 +338,35 @@ public class Chunk {
             return BlockType.AIR;
     }
 
+
+    public void SetBlockAt(Vector3 chunkBlockPos, BlockType blockType) {
+        if (InvalidBlockCoords(chunkBlockPos))
+            return;
+        chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z] = blockType;
+    }
+
+    private bool InvalidBlockCoords(Vector3 chunkBlockPos) {
+        return chunkBlockPos.Y < 0 || chunkBlockPos.Y >= Chunk.HEIGHT ||
+               chunkBlockPos.X < 0 || chunkBlockPos.X >= Chunk.SIZE ||
+               chunkBlockPos.Z < 0 || chunkBlockPos.Z >= Chunk.SIZE;
+    }
+
+    public BlockType GetBlockAt(Vector3 chunkBlockPos) {
+        if(InvalidBlockCoords(chunkBlockPos))
+            return BlockType.AIR;
+        return chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z];
+    }
+
+    public static Vector3 ConvertToChunkCoords(Vector3 pos) {
+        return new(pos.X-pos.X%Chunk.SIZE,
+                   0, pos.Z - pos.Z% Chunk.SIZE);
+    }
+
+    public static Vector3 ConvertToChunkBlockCoord(Vector3 pos) {
+        return new Vector3(
+            ((int)pos.X % Chunk.SIZE + Chunk.SIZE) % Chunk.SIZE,    // X position within the chunk
+            ((int)pos.Y % Chunk.HEIGHT + Chunk.HEIGHT) % Chunk.HEIGHT, // Y position within the chunk
+            ((int)pos.Z % Chunk.SIZE + Chunk.SIZE) % Chunk.SIZE      // Z position within the chunk
+        );
+    }
 }
