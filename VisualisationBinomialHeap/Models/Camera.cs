@@ -177,7 +177,7 @@ public class Camera {
         float traveledDistance = 0.0f;
 
         for(int i=0; i< 100; ++i) {
-            Vector3 chunkPos = GetChunkPos(position);
+            Vector3 chunkPos = GetChunkPos(new(x,y,z));
             Chunk.ConvertToWorldCoords(ref chunkPos);
             
             Vector3 chunkBlockPos = Chunk.ConvertToChunkBlockCoord(new Vector3(x, y, z));
