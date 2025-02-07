@@ -48,28 +48,15 @@ public class World {
                 //Console.WriteLine($"i = {i}, j = {j}");
                 Vector3 copyChunkPos = new(i, 0, j);
 
-                byte chunkNeighbours = 0b_0000;
-
-                if (i != XbottomBound)
-                    chunkNeighbours |= 0b_0001;
-                if (i != XtopBound)
-                    chunkNeighbours |= 0b_0100;
-
-                if (j != ZtopBound)
-                    chunkNeighbours |= 0b_1000;
-                if (j != ZbottomBound)
-                    chunkNeighbours |= 0b_0010;
-
                 if (!allChunks.TryGetValue(copyChunkPos, out toAdd)) {
 
                     Console.WriteLine($"World::currCunkPosition:{copyChunkPos}");
-                    toAdd = new(copyChunkPos, chunkNeighbours);
+                    toAdd = new(copyChunkPos);
                     if (allChunks.TryAdd(copyChunkPos, toAdd))
                         Console.WriteLine("Saved chunk succesfully");
                 }
                 else {
-                    Console.WriteLine($"Loaded chunk: {copyChunkPos}");
-                    toAdd.neighbours = chunkNeighbours;
+                    Console.WriteLine($"Loaded chunk: {copyChunkPos}");                    
                 }
                 //if (!forRendering.Contains(toAdd)) {
                 //    forRendering.Enqueue(toAdd);
@@ -165,7 +152,8 @@ public class World {
         foreach (var chunk in forRendering) {
             Vector3 leftCase = new(chunk.position.X+16, chunk.position.Y, chunk.position.Z+16);
             Vector3 rightCase = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z-16);
-            if (!IsInsideFrustum(chunk.position, frustum) && !IsInsideFrustum(leftCase,frustum) &&
+            if (GameConfig.DoFrustumCulling &&
+                !IsInsideFrustum(chunk.position, frustum) && !IsInsideFrustum(leftCase,frustum) &&
                 !IsInsideFrustum(rightCase,frustum))
                 continue;
 
@@ -255,13 +243,15 @@ public class World {
     }
 
     private void RemoveFarChunks(Vector3 pos) {
-        List<Chunk> toRemove = new(); 
+        List<Chunk> toRemove = new();
 
-        foreach(var chunk in forRendering) {
-            var playerPos = Camera.GetChunkPos(pos);
-            var chunkPos = chunk.NormalizedChunkPos;
-            if (Math.Abs(playerPos.X - chunkPos.X) >= renderDistance ||
-                Math.Abs(playerPos.Z - chunkPos.Z) >= renderDistance) {
+        var playerPos = Camera.GetChunkPos(pos);
+        Chunk.ConvertToWorldCoords(ref playerPos);
+        foreach (var chunk in forRendering) {
+            var chunkPos = chunk.position;
+            //Chunk.ConvertToWorldCoords(ref chunkPos);
+            if (Math.Abs(playerPos.X - chunkPos.X)/Chunk.SIZE >= renderDistance + 1 ||
+                Math.Abs(playerPos.Z - chunkPos.Z)/Chunk.SIZE >= renderDistance + 1) {
                 //chunk.Unload();
                 toRemove.Add(chunk);
             }
@@ -277,26 +267,30 @@ public class World {
         }
     }
 
-    private void MarkNeighboursForReDraw(Vector3 position) {
+    public void MarkNeighboursForReDraw(Vector3 position) {
         Vector3 checkPos = new(position.X+16, position.Y, position.Z);
         Chunk? neighbour;
         if (allChunks.TryGetValue(checkPos, out neighbour)) {
             neighbour.ReDraw = true;
+            neighbour.AddedFaces = false;
             neighbour.Delete();
         }
         checkPos = new(position.X, position.Y, position.Z-16);
         if (allChunks.TryGetValue(checkPos, out neighbour)) {
             neighbour.ReDraw = true;
+            neighbour.AddedFaces = false;
             neighbour.Delete();
         }
         checkPos = new(position.X, position.Y, position.Z+16);
         if (allChunks.TryGetValue(checkPos, out neighbour)) {
             neighbour.ReDraw = true;
+            neighbour.AddedFaces = false;
             neighbour.Delete();
         }
         checkPos = new(position.X-16, position.Y, position.Z);
         if (allChunks.TryGetValue(checkPos, out neighbour)) {
             neighbour.ReDraw = true;
+            neighbour.AddedFaces = false;
             neighbour.Delete();
         }
     }
@@ -320,31 +314,7 @@ public class World {
             neighbour.neighbours ^= 0b_01000;
         }
     }
-    private void ClearFaceData(ConcurrentBag<Chunk> chunks) {
 
-    }
-
-    private List<byte[,]> GetNeighboursHeightMap(Vector3 chunkPos) {
-        List<byte[,]> retVal = new();
-        Vector3 neighbourPos = new(chunkPos.X, chunkPos.Y, chunkPos.Z+16);
-        if (allChunks.TryGetValue(neighbourPos, out Chunk? neighbour))
-            retVal.Add(neighbour.heightMap);
-
-        neighbourPos = new(chunkPos.X+16, chunkPos.Y, chunkPos.Z);
-        if (allChunks.TryGetValue(neighbourPos, out neighbour))
-            retVal.Add(neighbour.heightMap);
-
-        neighbourPos= new(chunkPos.X, chunkPos.Y, chunkPos.Z-16);
-        if (allChunks.TryGetValue(neighbourPos, out neighbour))
-            retVal.Add(neighbour.heightMap);
-
-        neighbourPos = new(chunkPos.X-16, chunkPos.Y, chunkPos.Z);
-        if (allChunks.TryGetValue(neighbourPos, out neighbour))
-            retVal.Add(neighbour.heightMap);
-
-
-        return retVal;
-    }
 
     public BlockType GetBlockAt(Vector3 chunkPos, Vector3 blockPos) {
 

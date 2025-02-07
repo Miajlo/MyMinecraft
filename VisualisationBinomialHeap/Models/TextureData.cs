@@ -25,6 +25,22 @@ public readonly struct TextureData {
         { Faces.RIGHT,  new(1.0f, 3.0f) },
         { Faces.TOP,  new(1.0f, 3.0f) },
         { Faces.BOTTOM,  new(1.0f, 3.0f) }
+    }},
+      { BlockType.STONE_BRICKS, new() {
+        { Faces.FRONT, new(0.0f, 2.0f) },
+        { Faces.BACK,  new(0.0f, 2.0f) },
+        { Faces.LEFT,  new(0.0f, 2.0f) },
+        { Faces.RIGHT,  new(0.0f, 2.0f) },
+        { Faces.TOP,  new(0.0f, 2.0f) },
+        { Faces.BOTTOM,  new(0.0f, 2.0f) }
+    }},
+       { BlockType.BRICKS, new() {
+        { Faces.FRONT, new(1.0f, 2.0f) },
+        { Faces.BACK,  new(1.0f, 2.0f) },
+        { Faces.LEFT,  new(1.0f, 2.0f) },
+        { Faces.RIGHT,  new(1.0f, 2.0f) },
+        { Faces.TOP,  new(1.0f, 2.0f) },
+        { Faces.BOTTOM,  new(1.0f, 2.0f) }
     }}
 };
 

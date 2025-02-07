@@ -4,7 +4,9 @@ public enum BlockType : byte {
     AIR,
     DIRT,
     STONE,
-    GRASS_BLOCK
+    GRASS_BLOCK,
+    STONE_BRICKS,
+    BRICKS
 }
 
 public enum Faces :byte {
