@@ -10,3 +10,4 @@ global using MyMinecraft.Models;
 global using MyMinecraft.Graphics;
 global using System.Collections.Concurrent;
 global using MyMinecraft.Utils;
+global using MyMinecraft.Config;

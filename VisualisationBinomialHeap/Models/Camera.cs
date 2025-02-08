@@ -1,9 +1,7 @@
 ﻿namespace MyMinecraft.Models; 
 public class Camera {
     #region GameRules
-    public bool doCollisionChecks = false;
-    public bool generateChunks = true;
-    public bool showChunkBorders = false;
+    public GameRules gameRules = new();
     #endregion
     #region Flags
     private bool collisionChecksFlag = false;
@@ -11,7 +9,7 @@ public class Camera {
     private bool genChunksFlag = false;
     private bool chunkBordersflag = false;
     #endregion
-    public float Speed = 15f;
+    BlockType selectedBlock;
     private float Width;
     private float Height;
     private float Sensitivity = 180f;
@@ -33,6 +31,7 @@ public class Camera {
         Height = height;
         position = pos;
         worldRef = worldd;
+        selectedBlock = BlockType.DIRT;
     }
     public Matrix4 GetViewMatrix() {
         return Matrix4.LookAt(position, position + front, up);
@@ -90,41 +89,30 @@ public class Camera {
         if (input.IsKeyDown(Keys.Escape))
             window.Close();
 
+        HandleNumericalInput(input);
 
-        if (input.IsKeyDown(Keys.F3) && !f3Pressed) {
+        if (input.IsKeyPressed(Keys.F3))
             PrintCurrentPosition();
-            f3Pressed = true;
-        }
 
-        if (input.IsKeyDown(Keys.N) && !collisionChecksFlag) {
-            doCollisionChecks = !doCollisionChecks;
-            Console.WriteLine($"Collision checks set to: {doCollisionChecks}");
-            collisionChecksFlag = true;
-        }
-        else if (input.IsKeyReleased(Keys.N)) {
-            collisionChecksFlag = false;
+
+        if (input.IsKeyPressed(Keys.N) ) {
+            gameRules.doCollisionChecks = !gameRules.doCollisionChecks;
+            Console.WriteLine($"Collision checks set to: {gameRules.doCollisionChecks}");
         }
         
 
 
-        if (input.IsKeyDown(Keys.M) && !genChunksFlag) {
-            generateChunks = !generateChunks;
-            Console.WriteLine($"Generate chunks set to: {generateChunks}");
-            genChunksFlag = true;
+        if (input.IsKeyPressed(Keys.M)) {
+            gameRules.generateChunks = !gameRules.generateChunks;
+            Console.WriteLine($"Generate chunks set to: {gameRules.generateChunks}");
         }
-        else if (input.IsKeyReleased(Keys.M))
-            genChunksFlag = false;
 
-        if (input.IsKeyDown(Keys.F3) && input.IsKeyDown(Keys.G) && !chunkBordersflag) {
-            showChunkBorders = !showChunkBorders;
-            Console.WriteLine($"Show Chunk Borders: {showChunkBorders}");
-            chunkBordersflag = true;
+        if (input.IsKeyPressed(Keys.G)) {
+            gameRules.showChunkBorders = !gameRules.showChunkBorders;
+            Console.WriteLine($"Show Chunk Borders: {gameRules.showChunkBorders}");
+            
         }
-        else if (input.IsKeyReleased(Keys.F3) && input.IsKeyReleased(Keys.G)) {
-            chunkBordersflag = false;
-        }
-        else if (input.IsKeyReleased(Keys.F3))
-            f3Pressed = false;
+
 
 
         if(mouse.IsButtonPressed(MouseButton.Left)) {
@@ -148,6 +136,22 @@ public class Camera {
             pitch -= dY * Sensitivity * (float)e.Time;
         }
        UpdateVectors();
+    }
+
+    private void HandleNumericalInput(KeyboardState input) {
+        for (int i = 1; i <= 9; i++) { // Loop through number keys
+            Keys key = Keys.D0 + i;       // Regular number keys (0-9)           
+
+            if (input.IsKeyPressed(key)) {
+                byte blockId = (byte)i; // Convert int to byte first
+
+                if (!Enum.IsDefined(typeof(BlockType), blockId))
+                    continue;
+
+                selectedBlock = (BlockType)blockId;
+                Console.WriteLine($"Switched to block: {selectedBlock}");
+            }
+        }
     }
 
     private void PlaceBlock() {
@@ -180,14 +184,13 @@ public class Camera {
         bool prevValSet = false;
 
         for (int i = 0; i < 100; ++i) {
-            Vector3 chunkPos = GetChunkPos(new(x, y, z));
-            Chunk.ConvertToWorldCoords(ref chunkPos);
+            Vector3 chunkPos = Chunk.ConvertToChunkCoords(new(x,y,z));
 
             Vector3 chunkBlockPos = Chunk.ConvertToChunkBlockCoord(new Vector3(x, y, z));
 
 
             // Check if the chunk exists in the dictionary
-            if (world.allChunks.TryGetValue(chunkPos, out Chunk? chunk)) {
+            if (y<Chunk.HEIGHT && world.allChunks.TryGetValue(chunkPos, out Chunk? chunk)) {
                 // Retrieve the block type at the calculated block position
                 BlockType block = chunk.GetBlockAt(chunkBlockPos);
 
@@ -196,7 +199,7 @@ public class Camera {
                     if (!world.allChunks.TryGetValue(prevChunkPos, out chunk))
                         return;
                     Console.WriteLine($"Hit block: {prevBlockPos} {prevChunkPos}");
-                    chunk.SetBlockAt(prevBlockPos, BlockType.STONE_BRICKS);
+                    chunk.SetBlockAt(prevBlockPos, selectedBlock);
                     world.MarkNeighboursForReDraw(chunk.position);
                     chunk.ReDraw = true;
                     chunk.AddedFaces = false;
@@ -243,18 +246,18 @@ public class Camera {
             return;
 
         Vector3 hitNormal = new();
-      
+
         int x = (int)Math.Floor(position.X);
         int y = (int)Math.Floor(position.Y);
         int z = (int)Math.Floor(position.Z);
 
-        int stepX = front.X < 0 ? -1 : 1;
-        int stepY = front.Y < 0 ? -1 : 1;
-        int stepZ = front.Z < 0 ? -1 : 1;
+        int stepX = (front.X > 0) ? 1 : -1;
+        int stepY = (front.Y > 0) ? 1 : -1;
+        int stepZ = (front.Z > 0) ? 1 : -1;
 
-        float tMaxX = ((x + (stepX > 0 ? 1 : 0)) - position.X) / front.X;
-        float tMaxY = ((y + (stepY > 0 ? 1 : 0)) - position.Y) / front.Y;
-        float tMaxZ = ((z + (stepZ > 0 ? 1 : 0)) - position.Z) / front.Z;
+        float tMaxX = (stepX > 0 ? (x + 1 - position.X) : (position.X - x)) / Math.Abs(front.X);
+        float tMaxY = (stepY > 0 ? (y + 1 - position.Y) : (position.Y - y)) / Math.Abs(front.Y);
+        float tMaxZ = (stepZ > 0 ? (z + 1 - position.Z) : (position.Z - z)) / Math.Abs(front.Z);
 
         float tDeltaX = Math.Abs(1 / front.X);
         float tDeltaY = Math.Abs(1 / front.Y);
@@ -263,19 +266,14 @@ public class Camera {
         float maxDistance = 5.0f; // Limit to 5 blocks
         float traveledDistance = 0.0f;
 
-        for(int i=0; i < 100; ++i) {
-            Vector3 chunkPos = GetChunkPos(new(x,y,z));
-            Chunk.ConvertToWorldCoords(ref chunkPos);
-            
+        for (int i = 0; i < 100; ++i) {
+            Vector3 chunkPos = Chunk.ConvertToChunkCoords(new(x, y, z));
+
             Vector3 chunkBlockPos = Chunk.ConvertToChunkBlockCoord(new Vector3(x, y, z));
 
-
-            // Check if the chunk exists in the dictionary
-            if (world.allChunks.TryGetValue(chunkPos, out Chunk? chunk)) {
-                // Retrieve the block type at the calculated block position
+            if (y<Chunk.HEIGHT && world.allChunks.TryGetValue(chunkPos, out Chunk? chunk)) {
                 BlockType block = chunk.GetBlockAt(chunkBlockPos);
 
-                // If the block is solid (not air), stop the raycast and register the hit
                 if (block != BlockType.AIR) {
                     Console.WriteLine($"Hit block: {chunkBlockPos} {chunkPos}");
                     chunk.SetBlockAt(chunkBlockPos, BlockType.AIR);
@@ -285,11 +283,10 @@ public class Camera {
                     chunk.Delete();
                     world.MeshChunks();
                     break;
-
                 }
             }
 
-            // Determine next voxel step and distance
+            // Step to the next voxel
             if (tMaxX < tMaxY && tMaxX < tMaxZ) {
                 traveledDistance = tMaxX;
                 tMaxX += tDeltaX;
@@ -309,17 +306,16 @@ public class Camera {
                 hitNormal = new Vector3(0, 0, -stepZ);
             }
 
-            // Stop if we exceed the max distance (5 blocks)
             if (traveledDistance > maxDistance)
                 break;
         }
 
-       
+
 
     }
 
     private void DPressedHandle(FrameEventArgs e) {
-        Vector3 desiredPositon = position + right * Speed * (float)e.Time;
+        Vector3 desiredPositon = position + right * gameRules.movementSpeed * (float)e.Time;
         Vector3 nextPos = position + (Math.Sign(right.X) * 1f, 0, 0);
 
         if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0,-1f,0)) )
@@ -335,7 +331,7 @@ public class Camera {
     }
 
     private void APressedHandle(FrameEventArgs e) {
-        Vector3 desiredPositon = position - right * Speed * (float)e.Time;
+        Vector3 desiredPositon = position - right * gameRules.movementSpeed * (float)e.Time;
         Vector3 nextPos = position + (Math.Sign(-right.X) * 1f, 0, 0);
 
         if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
@@ -351,7 +347,7 @@ public class Camera {
     }
 
     private void SPressedHandle(FrameEventArgs e) {
-        Vector3 desiredPositon = position - front * Speed * (float)e.Time;
+        Vector3 desiredPositon = position - front * gameRules.movementSpeed * (float)e.Time;
         Vector3 nextPos = position + (Math.Sign(front.X) * 1f, 0, 0);
 
         if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
@@ -371,18 +367,18 @@ public class Camera {
 
         Vector3 nextPos = position + (0, 2.2f, 0);
         if (!CheckForCollisions(nextPos))
-            position += (0, Speed * (float)e.Time, 0);
+            position += (0, gameRules.movementSpeed* (float)e.Time, 0);
     }
 
     private void ShiftPressedHandle(FrameEventArgs e) {
         Vector3 nextPos = position + (0, -2f, 0);
         if (!CheckForCollisions(nextPos))
-            position += (0, -Speed * (float)e.Time, 0);
+            position += (0, -gameRules.movementSpeed * (float)e.Time, 0);
 
     }
 
     private void WPressedHandle(FrameEventArgs e) {
-        Vector3 desiredPositon = position + front * Speed * (float)e.Time;
+        Vector3 desiredPositon = position + front * gameRules.movementSpeed * (float)e.Time;
         Vector3 nextPos = position + (Math.Sign(front.X) * 1f, 0, 0);
 
         if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)) && !CheckForCollisions(nextPos + (0, 1.8f, 0)))
@@ -398,31 +394,18 @@ public class Camera {
     }
     //position = nextPos + (Math.Sign(position.X) * 0.5f, 0 , 0);
     private bool CheckForCollisions(Vector3 nextPosition) {
-        if (!doCollisionChecks)
+        if (!gameRules.doCollisionChecks)
             return false;
         if (nextPosition.Y > Chunk.HEIGHT - 1 || (int)nextPosition.Y < 2)
             return false;
 
         Chunk? forChekin = new();
 
-        int posX, posY, posZ;
+        Vector3 chunkPos = GetChunkPos(nextPosition);
+        Chunk.ConvertToWorldCoords(ref chunkPos);
 
-        int x = (int)nextPosition.X * Math.Sign(nextPosition.X),
-            z = (int)nextPosition.Z * Math.Sign(nextPosition.Z);
-        x  = x % 16;
-        z = z % 16;
+        Vector3 blockPos = Chunk.ConvertToChunkBlockCoord(nextPosition);
 
-        posX = (int)((nextPosition.X -  nextPosition.X % 16)/ 16 + 1 * Math.Sign(nextPosition.X));
-        posY = 0;
-        posZ = (int)((nextPosition.Z -  nextPosition.Z % 16) / 16 + 1 * Math.Sign(nextPosition.Z));
-
-
-        string chunkID = $"{Chunk.ConvertPosToChunkID(position)}";
-        Vector3 chunkPos = new(
-                             (position.X - position.X % 16),
-                             0,
-                             (position.Z - position.Z % 16)
-                         );
         var world = GetWorld();
 
         if (world == null) {
@@ -435,13 +418,13 @@ public class Camera {
         }
 
         if (!world!.forRendering.Contains(forChekin)) {
-            Console.WriteLine($"Current chunk not loaded, ID: {chunkID}");
+            Console.WriteLine($"Current chunk not loaded, ID: {chunkPos}");
             return false;
         }
         //Console.WriteLine($"Checking in chunk: {chunkID}");
         //Console.WriteLine($"Checking block: {x}, {0}, {z}");
 
-        if (forChekin.chunkBlocks[x,(int)nextPosition.Y * Math.Sign(nextPosition.Y), z] != BlockType.AIR)
+        if (forChekin.GetBlockAt(blockPos) != BlockType.AIR)
             return true;
 
         return false;
@@ -476,7 +459,7 @@ public class Camera {
         return new(posX, posY, posZ);
     }
 
-    public static string GetChunkID(Vector3 pos) {
+        public static string GetChunkID(Vector3 pos) {
         int posX, posY, posZ;
 
         posX = (int)((pos.X -  pos.X % 16) / 16 + 1 * Math.Sign(pos.X));

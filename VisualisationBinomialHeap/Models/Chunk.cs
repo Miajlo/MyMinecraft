@@ -5,18 +5,19 @@ public class Chunk {
     public List<Vector3> chunkVert = new();
     public List<Vector2> chunkUVs = new();
     public List<uint> chunkInd = new();
-    public byte[,] heightMap = new byte[SIZE,SIZE];
     public const byte SIZE = 16;
     public const byte HEIGHT = 64;
 
+    public ChunkData chunkData;
+
     public Vector3 position;
+    public byte[,] heightMap = new byte[SIZE,SIZE];
 
     public BlockType[,,] chunkBlocks = new BlockType[SIZE,HEIGHT,SIZE]; 
 
     public uint indexCount;
     public bool Built { get; set; } = false;
     public bool AddedFaces { get; set; } = false;
-
     public bool ReDraw { get; set; } = true;
 
     public byte neighbours = 0b_0000;
@@ -126,7 +127,7 @@ public class Chunk {
     public void GenHeightMap() {
         FastNoiseLite fnl = new();
         fnl.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
-        fnl.SetFrequency(0.03f);
+        fnl.SetFrequency(0.01f);
         for (var x=0; x<SIZE;++x ) {
             for(var z=0; z<SIZE; ++z) {
                 float noiseValue = fnl.GetNoise(x+position.X, z+position.Z);
@@ -136,8 +137,6 @@ public class Chunk {
     }
 
     public void GenChunk() {
-        
-
         for (int x = 0; x < SIZE; ++x) {
             for (int z = 0; z < SIZE; ++z) {              
                 for (int y = 0; y < HEIGHT; ++y) {
@@ -342,31 +341,55 @@ public class Chunk {
     public void SetBlockAt(Vector3 chunkBlockPos, BlockType blockType) {
         if (InvalidBlockCoords(chunkBlockPos))
             return;
+        chunkBlockPos = Chunk.ConvertToChunkBlockCoord(chunkBlockPos);
         chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z] = blockType;
     }
 
-    private bool InvalidBlockCoords(Vector3 chunkBlockPos) {
+    public static bool InvalidBlockCoords(Vector3 chunkBlockPos) {
         return chunkBlockPos.Y < 0 || chunkBlockPos.Y >= Chunk.HEIGHT ||
                chunkBlockPos.X < 0 || chunkBlockPos.X >= Chunk.SIZE ||
                chunkBlockPos.Z < 0 || chunkBlockPos.Z >= Chunk.SIZE;
     }
 
     public BlockType GetBlockAt(Vector3 chunkBlockPos) {
+
         if(InvalidBlockCoords(chunkBlockPos))
             return BlockType.AIR;
+
         return chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z];
     }
 
     public static Vector3 ConvertToChunkCoords(Vector3 pos) {
-        return new(pos.X-pos.X%Chunk.SIZE,
-                   0, pos.Z - pos.Z% Chunk.SIZE);
+        int posX, posY, posZ;
+        posX = (int)Math.Floor(pos.X / 16);
+        posY = 0;
+        posZ = (int)Math.Floor(pos.Z / 16);
+        return new Vector3(posX, posY, posZ)*Chunk.SIZE;
     }
 
     public static Vector3 ConvertToChunkBlockCoord(Vector3 pos) {
+         return new Vector3(
+             ModFloor((int)pos.X, Chunk.SIZE),
+             ModFloor((int)pos.Y, Chunk.HEIGHT),
+             ModFloor((int)pos.Z, Chunk.SIZE)
+         );
+    }
+
+    public static Vector3 ConvertToChunkRelativeCoord(Vector3 pos) {
+        Vector3 alignedPos = Camera.GetChunkPos(pos);
+        Chunk.ConvertToWorldCoords(ref alignedPos);
+
+        // Compute local position within the chunk
         return new Vector3(
-            ((int)pos.X % Chunk.SIZE + Chunk.SIZE) % Chunk.SIZE,    // X position within the chunk
-            ((int)pos.Y % Chunk.HEIGHT + Chunk.HEIGHT) % Chunk.HEIGHT, // Y position within the chunk
-            ((int)pos.Z % Chunk.SIZE + Chunk.SIZE) % Chunk.SIZE      // Z position within the chunk
+            ((int)pos.X - alignedPos.X),
+            (int)pos.Y, // Y remains unchanged
+            ((int)pos.Z - alignedPos.Z)
         );
+    }
+    private static int ModFloor(int value, int mod) {
+        int result = value % mod;
+        if (result < 0) result += mod; // Fix negative values
+        //if (result > 0) result = (int)value - ;
+        return result;
     }
 }

@@ -1,4 +1,6 @@
 ﻿namespace MyMinecraft.Models; 
-public class ChunkData {
-
+public struct ChunkData {
+    public BlockType[,,] blocks;
+    public Vector3 position;
+    public ushort heightMap;
 }

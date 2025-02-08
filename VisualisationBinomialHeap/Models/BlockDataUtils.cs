@@ -6,7 +6,11 @@ public enum BlockType : byte {
     STONE,
     GRASS_BLOCK,
     STONE_BRICKS,
-    BRICKS
+    BRICKS,
+    OAK_LOG,
+    OAK_LEAVES,
+    COBBLESTONE,
+    MOSSY_COBBLESTONE
 }
 
 public enum Faces :byte {

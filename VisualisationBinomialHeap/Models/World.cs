@@ -1,8 +1,8 @@
-﻿namespace MyMinecraft.Models; 
+﻿namespace MyMinecraft.Models;
 public class World {
     public ConcurrentDictionary<Vector3, Chunk> allChunks = new();
     public ConcurrentQueue<Chunk> forRendering = new();
-    
+
     public int renderDistance = 1;
     public bool readyToRender = false;
     public object locker = new();
@@ -37,14 +37,14 @@ public class World {
         int offset = renderDistance * Chunk.SIZE;
         int totalIterations = 0;
 
-        int XbottomBound = (int)(currChunkPos.X) - offset; 
+        int XbottomBound = (int)(currChunkPos.X) - offset;
         int ZbottomBound = (int)(currChunkPos.Z) - offset;
         int XtopBound = XbottomBound + 2*offset;
         int ZtopBound = ZbottomBound + 2*offset;
 
 
         for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
-            for(int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
+            for (int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
                 //Console.WriteLine($"i = {i}, j = {j}");
                 Vector3 copyChunkPos = new(i, 0, j);
 
@@ -56,16 +56,16 @@ public class World {
                         Console.WriteLine("Saved chunk succesfully");
                 }
                 else {
-                    Console.WriteLine($"Loaded chunk: {copyChunkPos}");                    
+                    Console.WriteLine($"Loaded chunk: {copyChunkPos}");
                 }
                 //if (!forRendering.Contains(toAdd)) {
                 //    forRendering.Enqueue(toAdd);
                 //}
 
-                
+
                 ++totalIterations;
             }
-            
+
         }
         MeshChunks();
 
@@ -73,19 +73,19 @@ public class World {
     }
 
     public void MeshChunks() {
-        
-        foreach(var chunk in allChunks.Values) {
+
+        foreach (var chunk in allChunks.Values) {
             if (chunk.AddedFaces || !chunk.ReDraw)
                 continue;
 
-            for(var x=0;x<Chunk.SIZE;++x) {                
-                for(var z=0; z<Chunk.SIZE; ++z) {
-                    for(var y=0;y<Chunk.HEIGHT; ++y) {
+            for (var x = 0; x<Chunk.SIZE; ++x) {
+                for (var z = 0; z<Chunk.SIZE; ++z) {
+                    for (var y = 0; y<Chunk.HEIGHT; ++y) {
                         if (chunk.chunkBlocks[x, y, z] != BlockType.AIR) {
                             uint addedFaces = 0; // Reset for each block
                             Vector3 blockPos = new(x, y, z);
                             // Left face
-                            Vector3 neighbourBlockPos = new(Chunk.SIZE-1,y,z);
+                            Vector3 neighbourBlockPos = new(Chunk.SIZE-1, y, z);
                             Vector3 neighbourChunkPos = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z);
                             BlockType neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
 
@@ -125,7 +125,7 @@ public class World {
                             neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z+16);
                             neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                             // Front face
-                            if ((neighbourBlock == BlockType.AIR && z == Chunk.SIZE - 1 ) || (z != Chunk.SIZE-1 && chunk.chunkBlocks[x, y, z + 1] == BlockType.AIR)) {
+                            if ((neighbourBlock == BlockType.AIR && z == Chunk.SIZE - 1) || (z != Chunk.SIZE-1 && chunk.chunkBlocks[x, y, z + 1] == BlockType.AIR)) {
                                 chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.FRONT, blockPos);
                                 addedFaces++;
                             }
@@ -153,8 +153,8 @@ public class World {
             Vector3 leftCase = new(chunk.position.X+16, chunk.position.Y, chunk.position.Z+16);
             Vector3 rightCase = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z-16);
             if (GameConfig.DoFrustumCulling &&
-                !IsInsideFrustum(chunk.position, frustum) && !IsInsideFrustum(leftCase,frustum) &&
-                !IsInsideFrustum(rightCase,frustum))
+                !IsInsideFrustum(chunk.position, frustum) && !IsInsideFrustum(leftCase, frustum) &&
+                !IsInsideFrustum(rightCase, frustum))
                 continue;
 
 
@@ -164,11 +164,11 @@ public class World {
                 chunk.BuildChunk();
             chunk.Render(program);
             chunk.AddedFaces = true;
-        }      
+        }
     }
 
     public void DrawChunkBorders(ShaderProgram program, Vector3 pos) {
-        
+
         program.Bind();
 
 
@@ -196,7 +196,7 @@ public class World {
             2, 3, // Line 2
             4, 5, // Line 3
             6, 7,  // Line 4
-            1, 3,            
+            1, 3,
             1, 5,
             7, 5,
             7, 3
@@ -226,7 +226,7 @@ public class World {
         lineIBO.Bind();
 
         GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        
+
         // Draw the line
         GL.DrawElements(PrimitiveType.Lines, ind.Count, DrawElementsType.UnsignedInt, 0);
 
@@ -321,7 +321,7 @@ public class World {
         if (!allChunks.TryGetValue(chunkPos, out Chunk? chunk))
             return BlockType.AIR;
 
-        
+
 
         return chunk.chunkBlocks[(int)blockPos.X, (int)blockPos.Y, (int)blockPos.Z];
     }
@@ -335,5 +335,12 @@ public class World {
             }
         }
         return true; // The point is inside all planes
+    }
+
+    public Chunk? GetChunk(Vector3 pos) {
+        if (!allChunks.TryGetValue(pos, out Chunk? chunk))
+            Console.WriteLine($"Could not find chunk: {pos}");
+
+        return chunk;
     }
 }

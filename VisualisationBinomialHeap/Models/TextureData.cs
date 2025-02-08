@@ -41,7 +41,41 @@ public readonly struct TextureData {
         { Faces.RIGHT,  new(1.0f, 2.0f) },
         { Faces.TOP,  new(1.0f, 2.0f) },
         { Faces.BOTTOM,  new(1.0f, 2.0f) }
+    }},
+       { BlockType.OAK_LOG, new() {
+        { Faces.FRONT, new(2.0f, 2.0f) },
+        { Faces.BACK,  new(2.0f, 2.0f) },
+        { Faces.LEFT,  new(2.0f, 2.0f) },
+        { Faces.RIGHT,  new(2.0f, 2.0f) },
+        { Faces.TOP,  new(3.0f, 2.0f) },
+        { Faces.BOTTOM,  new(3.0f, 2.0f) }
+    }},
+       { BlockType.OAK_LEAVES, new() {
+        { Faces.FRONT, new(0.0f, 1.0f) },
+        { Faces.BACK,  new(0.0f, 1.0f) },
+        { Faces.LEFT,  new(0.0f, 1.0f) },
+        { Faces.RIGHT,  new(0.0f, 1.0f) },
+        { Faces.TOP,  new(0.0f, 1.0f) },
+        { Faces.BOTTOM,  new(0.0f, 1.0f) }
+    }},
+       { BlockType.COBBLESTONE, new() {
+        { Faces.FRONT, new(1.0f, 1.0f) },
+        { Faces.BACK,  new(1.0f, 1.0f) },
+        { Faces.LEFT,  new(1.0f, 1.0f) },
+        { Faces.RIGHT,  new(1.0f, 1.0f) },
+        { Faces.TOP,  new(1.0f, 1.0f) },
+        { Faces.BOTTOM,  new(1.0f, 1.0f) }
+    }},
+       { BlockType.MOSSY_COBBLESTONE, new() {
+        { Faces.FRONT, new(2.0f, 1.0f) },
+        { Faces.BACK,  new(2.0f, 1.0f) },
+        { Faces.LEFT,  new(2.0f, 1.0f) },
+        { Faces.RIGHT,  new(2.0f, 1.0f) },
+        { Faces.TOP,  new(2.0f, 1.0f) },
+        { Faces.BOTTOM,  new(2.0f, 1.0f) }
     }}
+
+
 };
 
     public static List<Vector2> GetUVs(BlockType type, Faces face) {

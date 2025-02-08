@@ -89,7 +89,7 @@ public class Window : GameWindow {
   
         world.RenderChunks(shaderProgram, view*camera.GetFrustumProjectionMatrix());
 
-        if (camera.showChunkBorders)
+        if (camera.gameRules.showChunkBorders)
             world.DrawChunkBorders(shaderProgram, camera.position);
 
 
@@ -119,7 +119,7 @@ public class Window : GameWindow {
         camera!.Update(keyboardState, MouseState, args, this);
 
         var currChunkPos = Camera.GetChunkPos(camera.position);
-        if (currChunkPos != camera.lastChunkPos && camera.generateChunks) {
+        if (currChunkPos != camera.lastChunkPos && camera.gameRules.generateChunks) {
             world.UpdateChunkRanderList(camera.position);
             camera.lastChunkPos =  Camera.GetChunkPos(camera.position);
         }
