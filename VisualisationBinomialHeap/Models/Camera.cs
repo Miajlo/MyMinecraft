@@ -193,9 +193,9 @@ public class Camera {
             if (y<Chunk.HEIGHT && world.allChunks.TryGetValue(chunkPos, out Chunk? chunk)) {
                 // Retrieve the block type at the calculated block position
                 BlockType block = chunk.GetBlockAt(chunkBlockPos);
-
+                BlockType prevBlock = chunk.GetBlockAt(prevBlockPos);
                 // If the block is solid (not air), stop the raycast and register the hit
-                if (block != BlockType.AIR && prevValSet) {
+                if (block != BlockType.AIR && prevValSet && prevBlock == BlockType.AIR) {
                     if (!world.allChunks.TryGetValue(prevChunkPos, out chunk))
                         return;
                     Console.WriteLine($"Hit block: {prevBlockPos} {prevChunkPos}");
