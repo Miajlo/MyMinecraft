@@ -9,7 +9,7 @@ public class Camera {
     private bool genChunksFlag = false;
     private bool chunkBordersflag = false;
     #endregion
-    BlockType selectedBlock;
+    public BlockType selectedBlock;
     private float Width;
     private float Height;
     private float Sensitivity = 180f;
@@ -24,7 +24,7 @@ public class Camera {
     public Vector3 position;
     public Vector3 lastChunkPos = (-500, 0, -500);
     Vector3 up = Vector3.UnitY;
-    Vector3 front = - Vector3.UnitZ;
+    public Vector3 front = - Vector3.UnitZ;
     Vector3 right = Vector3.UnitX;
     public Camera(float width, float height, Vector3 pos, WeakReference<World> worldd) {
         Width = width;
@@ -182,6 +182,8 @@ public class Camera {
 
         Vector3 prevBlockPos = new(), prevChunkPos = new();
         bool prevValSet = false;
+        BlockType prevBlock;
+
 
         for (int i = 0; i < 100; ++i) {
             Vector3 chunkPos = Chunk.ConvertToChunkCoords(new(x,y,z));
@@ -193,7 +195,16 @@ public class Camera {
             if (y<Chunk.HEIGHT && world.allChunks.TryGetValue(chunkPos, out Chunk? chunk)) {
                 // Retrieve the block type at the calculated block position
                 BlockType block = chunk.GetBlockAt(chunkBlockPos);
-                BlockType prevBlock = chunk.GetBlockAt(prevBlockPos);
+
+                if (prevValSet && (prevChunkPos == chunkPos || !world.allChunks.ContainsKey(prevChunkPos)))
+                    prevBlock = chunk.GetBlockAt(prevBlockPos);
+                else if(prevValSet && prevChunkPos != chunkPos) {
+                    if (!world.allChunks.TryGetValue(prevChunkPos, out chunk))
+                        return;
+                    prevBlock = chunk.GetBlockAt(prevBlockPos);
+                }
+                else
+                    prevBlock = BlockType.AIR;
                 // If the block is solid (not air), stop the raycast and register the hit
                 if (block != BlockType.AIR && prevValSet && prevBlock == BlockType.AIR) {
                     if (!world.allChunks.TryGetValue(prevChunkPos, out chunk))
@@ -205,6 +216,7 @@ public class Camera {
                     chunk.AddedFaces = false;
                     chunk.Delete();
                     world.MeshChunks();
+                    //chunk.Dirty = true;
                     break;
 
                 }
@@ -281,6 +293,7 @@ public class Camera {
                     chunk.AddedFaces = false;
                     world.MarkNeighboursForReDraw(chunk.position);
                     chunk.Delete();
+                    //chunk.Dirty = true;
                     world.MeshChunks();
                     break;
                 }

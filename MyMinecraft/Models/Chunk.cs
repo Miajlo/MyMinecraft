@@ -329,10 +329,17 @@ public class Chunk {
     }
 
     private BlockType GetBlockType(int height, int x, int z) {
-        if (height == heightMap[x, z])
+        FastNoiseLite fnl = new();
+        fnl.SetFrequency(0.1f);
+        fnl.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
+
+        float value = fnl.GetNoise(position.X+x, position.Y+height, position.Z+z);
+        bool airFlag = value < -0.25 && height > 0 && height < heightMap[x,z]-1;
+
+        if (height == heightMap[x, z] && !airFlag)
             return BlockType.GRASS_BLOCK;
-        else if (height < heightMap[x, z])
-            return BlockType.STONE;
+        else if (height < heightMap[x, z] && !airFlag)
+            return BlockType.OAK_LOG;
         else
             return BlockType.AIR;
     }
@@ -388,8 +395,7 @@ public class Chunk {
     }
     private static int ModFloor(int value, int mod) {
         int result = value % mod;
-        if (result < 0) result += mod; // Fix negative values
-        //if (result > 0) result = (int)value - ;
+        if (result < 0) result += mod; // Correctly wraps negative values
         return result;
     }
 }
