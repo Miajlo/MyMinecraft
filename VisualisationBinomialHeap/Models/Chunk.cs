@@ -319,7 +319,7 @@ public class Chunk {
         //}
     }
 
-    public static void ConvertToWorldCoords(ref Vector3 currChunkPos) {
+    public static void ConvertToWorldCoords(ref Vector3i currChunkPos) {
         if (currChunkPos.X > 0)
             --currChunkPos.X;
         if (currChunkPos.Z > 0)
@@ -383,7 +383,7 @@ public class Chunk {
     }
 
     public static Vector3 ConvertToChunkRelativeCoord(Vector3 pos) {
-        Vector3 alignedPos = Camera.GetChunkPos(pos);
+        Vector3i alignedPos = Camera.GetChunkPos(pos);
         Chunk.ConvertToWorldCoords(ref alignedPos);
 
         // Compute local position within the chunk

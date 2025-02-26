@@ -1,4 +1,6 @@
-﻿namespace MyMinecraft.Models; 
+﻿using MyMinecraft.Models_r;
+
+namespace MyMinecraft.Models; 
 public class Camera {
     #region GameRules
     public GameRules gameRules = new();
@@ -20,18 +22,20 @@ public class Camera {
     private bool isFirstMove = true;
     public Vector2 lastPosition;
 
-    WeakReference<World> worldRef;
+    WeakReference<World_r> worldRef;
+    Server_r server;
     public Vector3 position;
     public Vector3 lastChunkPos = (-500, 0, -500);
     Vector3 up = Vector3.UnitY;
     public Vector3 front = - Vector3.UnitZ;
     Vector3 right = Vector3.UnitX;
-    public Camera(float width, float height, Vector3 pos, WeakReference<World> worldd) {
+    public Camera(float width, float height, Vector3 pos, WeakReference<World_r> worldd, Server_r server) {
         Width = width;
         Height = height;
         position = pos;
         worldRef = worldd;
         selectedBlock = BlockType.DIRT;
+        this.server = server;
     }
     public Matrix4 GetViewMatrix() {
         return Matrix4.LookAt(position, position + front, up);
@@ -155,7 +159,7 @@ public class Camera {
     }
 
     private void PlaceBlock() {
-        World? world = GetWorld();
+        var world = GetWorld();
         if (world == null)
             return;
 
@@ -180,26 +184,26 @@ public class Camera {
         float maxDistance = 5.0f; // Limit to 5 blocks
         float traveledDistance = 0.0f;
 
-        Vector3 prevBlockPos = new(), prevChunkPos = new();
+        Vector3i prevBlockPos = new(), prevChunkPos = new();
         bool prevValSet = false;
         BlockType prevBlock;
 
 
         for (int i = 0; i < 100; ++i) {
-            Vector3 chunkPos = Chunk.ConvertToChunkCoords(new(x,y,z));
+            Vector3i chunkPos = (Vector3i)Chunk.ConvertToChunkCoords(new(x,y,z));
 
-            Vector3 chunkBlockPos = Chunk.ConvertToChunkBlockCoord(new Vector3(x, y, z));
+            Vector3i chunkBlockPos = (Vector3i)Chunk.ConvertToChunkBlockCoord(new Vector3(x, y, z));
 
 
             // Check if the chunk exists in the dictionary
-            if (y<Chunk.HEIGHT && world.allChunks.TryGetValue(chunkPos, out Chunk? chunk)) {
+            if (y<Chunk.HEIGHT && world.GetChunk(chunkPos, out Chunk_r? chunk)) {
                 // Retrieve the block type at the calculated block position
                 BlockType block = chunk.GetBlockAt(chunkBlockPos);
 
-                if (prevValSet && (prevChunkPos == chunkPos || !world.allChunks.ContainsKey(prevChunkPos)))
+                if (prevValSet && (prevChunkPos == chunkPos || !world.IsLoadedChunk(prevChunkPos)))
                     prevBlock = chunk.GetBlockAt(prevBlockPos);
                 else if(prevValSet && prevChunkPos != chunkPos) {
-                    if (!world.allChunks.TryGetValue(prevChunkPos, out chunk))
+                    if (!world.GetChunk(prevChunkPos, out chunk))
                         return;
                     prevBlock = chunk.GetBlockAt(prevBlockPos);
                 }
@@ -207,16 +211,20 @@ public class Camera {
                     prevBlock = BlockType.AIR;
                 // If the block is solid (not air), stop the raycast and register the hit
                 if (block != BlockType.AIR && prevValSet && prevBlock == BlockType.AIR) {
-                    if (!world.allChunks.TryGetValue(prevChunkPos, out chunk))
+                    if (!world.GetChunk(prevChunkPos, out chunk))
                         return;
                     Console.WriteLine($"Hit block: {prevBlockPos} {prevChunkPos}");
                     chunk.SetBlockAt(prevBlockPos, selectedBlock);
-                    world.MarkNeighboursForReDraw(chunk.position);
-                    chunk.ReDraw = true;
+                    //world.MarkNeighboursForReDraw(chunk.position);
+                    chunk.Redraw = true;
                     chunk.AddedFaces = false;
                     chunk.Delete();
-                    world.MeshChunks();
+                    //world.MeshChunks();
                     //chunk.Dirty = true;
+
+                    server.AddChunkToMesh(chunk);
+                    server.ReleaseMeshSem();
+
                     break;
 
                 }
@@ -253,7 +261,7 @@ public class Camera {
     }
 
     private void DestryBlock() {
-        World? world = GetWorld();
+        var world = GetWorld();
         if (world == null)
             return;
 
@@ -279,22 +287,26 @@ public class Camera {
         float traveledDistance = 0.0f;
 
         for (int i = 0; i < 100; ++i) {
-            Vector3 chunkPos = Chunk.ConvertToChunkCoords(new(x, y, z));
+            Vector3i chunkPos = (Vector3i)Chunk.ConvertToChunkCoords(new(x, y, z));
 
-            Vector3 chunkBlockPos = Chunk.ConvertToChunkBlockCoord(new Vector3(x, y, z));
+            Vector3i chunkBlockPos = (Vector3i)Chunk.ConvertToChunkBlockCoord(new Vector3(x, y, z));
 
-            if (y<Chunk.HEIGHT && world.allChunks.TryGetValue(chunkPos, out Chunk? chunk)) {
+            if (y<Chunk.HEIGHT && world.GetChunk(chunkPos, out Chunk_r? chunk)) {
                 BlockType block = chunk.GetBlockAt(chunkBlockPos);
 
                 if (block != BlockType.AIR) {
                     Console.WriteLine($"Hit block: {chunkBlockPos} {chunkPos}");
                     chunk.SetBlockAt(chunkBlockPos, BlockType.AIR);
-                    chunk.ReDraw = true;
+                    chunk.Redraw = true;
                     chunk.AddedFaces = false;
-                    world.MarkNeighboursForReDraw(chunk.position);
+                    //world.MarkNeighboursForReDraw(chunk.position);
                     chunk.Delete();
                     //chunk.Dirty = true;
-                    world.MeshChunks();
+                    //world.MeshChunks();
+
+                    server.AddChunkToMesh(chunk);
+                    server.ReleaseMeshSem();
+
                     break;
                 }
             }
@@ -412,9 +424,9 @@ public class Camera {
         if (nextPosition.Y > Chunk.HEIGHT - 1 || (int)nextPosition.Y < 2)
             return false;
 
-        Chunk? forChekin = new();
+        Chunk_r? forChekin = new();
 
-        Vector3 chunkPos = GetChunkPos(nextPosition);
+        Vector3i chunkPos = GetChunkPos(nextPosition);
         Chunk.ConvertToWorldCoords(ref chunkPos);
 
         Vector3 blockPos = Chunk.ConvertToChunkBlockCoord(nextPosition);
@@ -425,12 +437,12 @@ public class Camera {
             Console.WriteLine("Camera.CheckForCollision: world was null");
             return false;
         }
-        if (!world!.allChunks.TryGetValue(chunkPos, out forChekin)) {
+        if (!world!.GetChunk((Vector3i)chunkPos, out forChekin)) {
             Console.WriteLine($"Specified chunk not yer generated, ID: {chunkPos}");
             return false;
         }
 
-        if (!world!.forRendering.Contains(forChekin)) {
+        if (!world!.IsLoadedChunk(forChekin.position)) {
             Console.WriteLine($"Current chunk not loaded, ID: {chunkPos}");
             return false;
         }
@@ -443,8 +455,8 @@ public class Camera {
         return false;
     }
 
-    public World? GetWorld() {
-        if (worldRef.TryGetTarget(out World? world))
+    public World_r? GetWorld() {
+        if (worldRef.TryGetTarget(out var world))
             return world;
         else
             return null;
@@ -463,7 +475,7 @@ public class Camera {
         Console.WriteLine($"Current chunk: [ {chunkID} ]");
     }
 
-    public static Vector3 GetChunkPos(Vector3 pos) {
+    public static Vector3i GetChunkPos(Vector3 pos) {
         int posX, posY, posZ;
 
         posX = (int)((pos.X -  pos.X % 16) / 16 + 1 * Math.Sign(pos.X));

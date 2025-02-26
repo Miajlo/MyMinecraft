@@ -6,7 +6,7 @@ public class Chunk_r {
     #endregion
 
     #region CHUNK_DATA
-    public Vector3 position;
+    public Vector3i position;
     public BlockType[,,] chunkBlocks;
     public short[,] heightMap;
     #endregion
@@ -35,7 +35,7 @@ public class Chunk_r {
     #region CONSTRUCTORS
     public Chunk_r() {
         Built= false;
-        Redraw = false;
+        Redraw = true;
         AddedFaces = false;
         FirstDrawing = true;
         Dirty = false;
@@ -50,7 +50,7 @@ public class Chunk_r {
         indexCount = 0;
     }
 
-    public Chunk_r(Vector3 position) : base() {
+    public Chunk_r(Vector3i position) : this() {
         this.position = position;
     }
     #endregion
@@ -76,12 +76,28 @@ public class Chunk_r {
 
     private void GenHeightMap() {
         FastNoiseLite fnl = new();
+        FastNoiseLite fnl2 = new();
         fnl.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
         fnl.SetFrequency(0.01f);
+
+        fnl.SetFractalType(FastNoiseLite.FractalType.FBm);  // fBm (Fractional Brownian Motion)
+        fnl.SetFractalOctaves(4);      // Number of octaves
+        fnl.SetFractalLacunarity(2.0f); // Frequency multiplier per octave
+        fnl.SetFractalGain(0.5f);      // Amplitude multiplier per octave
+
+
+        fnl2.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
+        fnl2.SetFrequency(0.01f);
+
+        fnl2.SetFractalType(FastNoiseLite.FractalType.FBm);  // fBm (Fractional Brownian Motion)
+        fnl2.SetFractalOctaves(8);      // Number of octaves
+        fnl2.SetFractalLacunarity(1.5f); // Frequency multiplier per octave
+        fnl2.SetFractalGain(0.1f);
+
         for (var x = 0; x < SIZE; ++x) {
             for (var z = 0; z < SIZE; ++z) {
-                float noiseValue = fnl.GetNoise(x + position.X, z + position.Z);
-                heightMap[x, z] = (short)Math.Clamp(((noiseValue + 1) * 0.5f) * HEIGHT, 0, HEIGHT - 1);
+                float noiseValue = fnl.GetNoise(x + position.X, z + position.Z) + fnl2.GetNoise(x+position.X, z+position.Z) ;
+                heightMap[x, z] = (short)Math.Clamp((noiseValue + 1)* 0.5 * HEIGHT, 0, HEIGHT - 1);
             }
         }
     }

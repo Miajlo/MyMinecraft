@@ -29,8 +29,8 @@ public  class World_r {
 
     #region CHUNK_DATA_METHODS
     public bool AddLoadedChunk(Chunk_r chunk) {
-        if (!IsGenerated(chunk.position))
-            generatedChunks.Add(chunk.position);
+        //if (!IsGenerated(chunk.position))
+        //    generatedChunks.Add(chunk.position);
 
         return loadedChunks.TryAdd(chunk.position, chunk);
     }
@@ -46,21 +46,24 @@ public  class World_r {
         return chunk;
     }
 
-    public Chunk_r? GetChunk(Vector3 pos) {
-        Chunk_r? chunk;
-        if (loadedChunks.TryGetValue(pos, out chunk))
-            return chunk;       
-        else if (generatedChunks.Contains(pos)) {
-            chunk ??= new();
-            chunk.LoadFromFile();
-            return chunk;
-        }
-        else
-            throw new Exception($"Could not get chunk: {pos}");
+    public bool GetChunk(Vector3i pos, out Chunk_r? chunk) {
+        return loadedChunks.TryGetValue(pos, out chunk);
     }
+
+    public BlockType GetBlockAt(Vector3 chunkPos, Vector3 blockPos) {
+        if (!loadedChunks.TryGetValue(chunkPos, out var chunk))
+            return BlockType.AIR;
+
+        return chunk.chunkBlocks[(int)blockPos.X, (int)blockPos.Y, (int)blockPos.Z];
+    }
+
 
     public bool IsGenerated(Vector3 pos) {
         return generatedChunks.Contains(pos);
+    }
+
+    public bool IsLoadedChunk(Vector3 position) {
+        return loadedChunks.ContainsKey(position);
     }
     #endregion
 

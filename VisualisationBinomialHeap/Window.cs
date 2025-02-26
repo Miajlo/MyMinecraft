@@ -2,6 +2,7 @@
 using OpenTK.Compute.OpenCL;
 using MyMinecraft.Graphics;
 using System.Diagnostics;
+using MyMinecraft.Models_r;
 
 namespace MyMinecraft;
 
@@ -12,10 +13,12 @@ public class Window : GameWindow {
     private Stopwatch stopwatch;
     private int frameCount;
 
-    public int renderDistance = 4;
-    public World world = new();
+    public int renderDistance = 12;
+    public World_r world = new();
     
     Camera? camera;
+
+    Server_r server;
 
     ShaderProgram shaderProgram;
     
@@ -48,16 +51,17 @@ public class Window : GameWindow {
         GL.CullFace(CullFaceMode.Back); // or Front, depending on which faces should be culled
         GL.DepthFunc(DepthFunction.Less); // or another appropriate depth function
 
-        camera = new(Width, Height, (1 , 66, 1), new WeakReference<World>(world));
+        camera = new(Width, Height, (1 , 66, 1), new WeakReference<World_r>(world), server);
+        server = new Server_r(world, camera, renderDistance);
         CursorState = CursorState.Grabbed;
+        server.Start();
     }
 
     protected override void OnUnload() {
         base.OnUnload();
 
         shaderProgram.Delete();
-        foreach (var c in world.allChunks)
-            c.Value.Delete();
+        server.Stop();
         Texture.Delete();
     }
 
@@ -86,11 +90,11 @@ public class Window : GameWindow {
         //Console.WriteLine($"New Thread ID: {Thread.CurrentThread.ManagedThreadId}");
         //if(world.readyToRender)
 
-  
-        world.RenderChunks(shaderProgram, view*camera.GetFrustumProjectionMatrix());
 
-        if (camera.gameRules.showChunkBorders)
-            world.DrawChunkBorders(shaderProgram, camera.position);
+        server.RenderChunks(shaderProgram);
+
+        //if (camera.gameRules.showChunkBorders)
+        //    world.DrawChunkBorders(shaderProgram, camera.position);
 
 
         frameCount++;
@@ -120,7 +124,7 @@ public class Window : GameWindow {
 
         var currChunkPos = Camera.GetChunkPos(camera.position);
         if (currChunkPos != camera.lastChunkPos && camera.gameRules.generateChunks) {
-            world.UpdateChunkRanderList(camera.position);
+            server.UpdateQueues();
             camera.lastChunkPos =  Camera.GetChunkPos(camera.position);
         }
 
