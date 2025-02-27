@@ -13,7 +13,7 @@ public class Window : GameWindow {
     private Stopwatch stopwatch;
     private int frameCount;
 
-    public int renderDistance = 12;
+    public int renderDistance = 3;
     public World_r world = new();
     
     Camera? camera;
@@ -52,7 +52,7 @@ public class Window : GameWindow {
         GL.DepthFunc(DepthFunction.Less); // or another appropriate depth function
 
         camera = new(Width, Height, (1 , 66, 1), new WeakReference<World_r>(world), server);
-        server = new Server_r(world, camera, renderDistance);
+        server = new Server_r(world, renderDistance);
         CursorState = CursorState.Grabbed;
         server.Start();
     }
@@ -120,15 +120,20 @@ public class Window : GameWindow {
 
         base.OnUpdateFrame(args);
         //Console.WriteLine("Update frame!");
-        camera!.Update(keyboardState, MouseState, args, this);
+        var packets = camera!.Update(keyboardState, MouseState, args, this);
+        
+        if (packets != null && packets.Count > 0) {
+            server.RecievePackets(packets);
+            server.ProcessPackets();
+        }
 
         var currChunkPos = Camera.GetChunkPos(camera.position);
         if (currChunkPos != camera.lastChunkPos && camera.gameRules.generateChunks) {
-            server.UpdateQueues();
+            server.UpdateQueues(currChunkPos);
             camera.lastChunkPos =  Camera.GetChunkPos(camera.position);
         }
 
-       
+ 
         //CheckForCollision();
     }
 }

@@ -9,6 +9,7 @@ public class Server_r {
 
     private SemaphoreSlim genSem;
     private SemaphoreSlim meshSem;
+    private readonly ReaderWriterLockSlim lockChunk;
 
     private const string tMeshName = "MeshThread";
     private const string tGenName = "GenThread";
@@ -16,11 +17,12 @@ public class Server_r {
     private ConcurrentQueue<Vector3i> chunksToGen;
     private ConcurrentQueue<Chunk_r> chunksToMesh;
     private ConcurrentDictionary<Vector3, Chunk_r> chunksToRender;
+    private ConcurrentQueue<ServerPacket> packets;
     #endregion
 
     #region DATA
     private World_r world;
-    private Camera camera;
+    //private Camera camera;
     private int renderDistance;
     #endregion
     #region CONSTRUCTORS
@@ -31,18 +33,20 @@ public class Server_r {
         meshThread.Name = tMeshName;
         genThread.Name = tGenName;
 
-        chunksToGen = new();
-        chunksToMesh = new();
-        chunksToRender = new();
+        chunksToGen = [];
+        chunksToMesh = [];
+        chunksToRender = [];
+        packets = [];
 
         genSem = new SemaphoreSlim(0);
         meshSem = new SemaphoreSlim(0);
+        lockChunk = new ReaderWriterLockSlim();
 
         runGenThread = runMeshThread = true;
     }
-    public Server_r(World_r world, Camera camera, int renderDistance) : this() {
+    public Server_r(World_r world, int renderDistance) : this() {
         this.world = world;
-        this.camera = camera;
+    
         this.renderDistance = renderDistance;
     }
     #endregion
@@ -106,17 +110,151 @@ public class Server_r {
         }
     }
 
-    public void UpdateQueues() {
-        var currChunkPos = Camera.GetChunkPos(camera.position);
+    public void UpdateQueues(Vector3i currChunkPos) {
         Chunk.ConvertToWorldCoords(ref currChunkPos);
-        if (camera.lastChunkPos != currChunkPos && camera.gameRules.generateChunks) {
+       
 
-            RemoveFarChunks(currChunkPos);
-            AddChunksToGen(currChunkPos);
-            genSem.Release();
-            camera.lastChunkPos = currChunkPos;
+        RemoveFarChunks(currChunkPos);
+        AddChunksToGen(currChunkPos);
+        genSem.Release();
+    }
+
+    public void ProcessPackets() {
+        while(packets.TryDequeue(out var packet)) {
+            switch(packet.Type) {
+                case PacketType.DESTROY_BLOCK:
+                    TryDestroyBlock(packet as DestroyBlockPacket);
+                    break;
+                default:
+                    break;
+            }
         }
+    }
 
+    private void TryDestroyBlock(DestroyBlockPacket? packet) {
+        if (packet == null)
+            return;
+
+        
+
+        int x = (int)Math.Floor(packet.position.X);
+        int y = (int)Math.Floor(packet.position.Y);
+        int z = (int)Math.Floor(packet.position.Z);
+
+        int stepX = (packet.front.X > 0) ? 1 : -1;
+        int stepY = (packet.front.Y > 0) ? 1 : -1;
+        int stepZ = (packet.front.Z > 0) ? 1 : -1;
+
+        float tMaxX = (stepX > 0 ? (x + 1 - packet.position.X) 
+                                 : (packet.position.X - x)) / Math.Abs(packet.front.X);
+        float tMaxY = (stepY > 0 ? (y + 1 - packet.position.Y) 
+                                 : (packet.position.Y - y)) / Math.Abs(packet.front.Y);
+        float tMaxZ = (stepZ > 0 ? (z + 1 - packet.position.Z) 
+                                 : (packet.position.Z - z)) / Math.Abs(packet.front.Z);
+
+        float tDeltaX = Math.Abs(1 / packet.front.X);
+        float tDeltaY = Math.Abs(1 / packet.front.Y);
+        float tDeltaZ = Math.Abs(1 / packet.front.Z);
+
+        float maxDistance = packet.playerRange; // Limit to 5 blocks
+        float traveledDistance = 0.0f;
+
+        for (int i = 0; i < 100; ++i) {
+            Vector3i chunkPos = (Vector3i)Chunk_r.ConvertToChunkCoords(new(x, y, z));
+
+            Vector3i chunkBlockPos = (Vector3i)Chunk_r.ConvertToChunkBlockCoord(new Vector3(x, y, z));
+
+            if (y<Chunk_r.HEIGHT && world.GetChunk(chunkPos, out Chunk_r? chunk)) {
+                BlockType block = chunk.GetBlockAt(chunkBlockPos);
+
+                if (block != BlockType.AIR) {
+                    lockChunk.EnterWriteLock();
+                    int remeshCount = 0;
+                    try {
+                        Console.WriteLine($"Hit block: {chunkBlockPos} {chunkPos}");
+                        chunk.SetBlockAt(chunkBlockPos, BlockType.AIR);
+                        chunk.Redraw = true;
+                        chunk.AddedFaces = false;
+                        //world.MarkNeighboursForReDraw(chunk.position);
+                        //chunk.DeleteGL();
+
+                        chunksToMesh.Enqueue(chunk);
+
+                        remeshCount = MarkNeighboursForRedraw(chunk.position, chunkBlockPos) + 1; 
+
+                       
+                    }
+                    finally {
+                        lockChunk.ExitWriteLock();
+                    }
+                    meshSem.Release(remeshCount);
+                    break;
+                }
+            }
+
+            // Step to the next voxel
+            if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+                traveledDistance = tMaxX;
+                tMaxX += tDeltaX;
+                x += stepX;           
+            }
+            else if (tMaxY < tMaxZ) {
+                traveledDistance = tMaxY;
+                tMaxY += tDeltaY;
+                y += stepY;              
+            }
+            else {
+                traveledDistance = tMaxZ;
+                tMaxZ += tDeltaZ;
+                z += stepZ;
+            }
+
+            if (traveledDistance > maxDistance)
+                break;
+        }
+    }
+
+    private int MarkNeighboursForRedraw(Vector3i position, Vector3i chunkBlockPos) {
+        int remeshCount = 0;
+        Vector3i checkPos = new(position.X+16, position.Y, position.Z);
+        Chunk_r? neighbour;
+        if (chunkBlockPos.X == Chunk.SIZE-1 && world.GetChunk(checkPos, out neighbour)) {
+            neighbour.Redraw = true;
+            neighbour.AddedFaces = false;
+            if (!chunksToMesh.Contains(neighbour))
+                chunksToMesh.Enqueue(neighbour);
+            ++remeshCount;
+        }
+        checkPos = new(position.X, position.Y, position.Z-16);
+        if (chunkBlockPos.Z == 0 && world.GetChunk(checkPos, out neighbour)) {
+            neighbour.Redraw = true;
+            neighbour.AddedFaces = false;
+            if (!chunksToMesh.Contains(neighbour))
+                chunksToMesh.Enqueue(neighbour);
+            ++remeshCount;
+        }
+        checkPos = new(position.X, position.Y, position.Z+16);
+        if (chunkBlockPos.Z == Chunk.SIZE-1 && world.GetChunk(checkPos, out neighbour)) {
+            neighbour.Redraw = true;
+            neighbour.AddedFaces = false;
+            if (!chunksToMesh.Contains(neighbour))
+                chunksToMesh.Enqueue(neighbour);
+            ++remeshCount;
+        }
+        checkPos = new(position.X-16, position.Y, position.Z);
+        if (chunkBlockPos.X == 0 && world.GetChunk(checkPos, out neighbour)) {
+            neighbour.Redraw = true;
+            neighbour.AddedFaces = false;
+            if(!chunksToMesh.Contains(neighbour))
+                chunksToMesh.Enqueue(neighbour);
+            ++remeshCount;
+        }
+        return remeshCount;
+    }
+
+    public void RecievePackets(List<ServerPacket> sPackets) {
+        foreach (var packet in sPackets)
+            packets.Enqueue(packet);
     }
 
     #endregion
@@ -127,14 +265,25 @@ public class Server_r {
             meshSem.Wait();
 
             if(chunksToMesh.TryDequeue(out var chunk)) {
-                MeshChunk(chunk);
+                MeshChunk(ref chunk);
             }
         }
     }
 
-    private void MeshChunk(Chunk_r chunk) {
-        if (chunk.AddedFaces || !chunk.Redraw)
-            return;
+    private void MeshChunk(ref Chunk_r chunk) {
+        lockChunk.EnterReadLock();
+        try {
+            if (chunk.AddedFaces || !chunk.Redraw)
+                return;
+        }
+        finally {
+            lockChunk.ExitReadLock();
+        }
+        List<Vector3> chunkVert = [];
+        List<Vector2> chunkUVs = [];
+        List<uint> indeces = [];
+        uint indexCount = 0;
+
 
         for (var x = 0; x<Chunk_r.SIZE; ++x) {
             for (var z = 0; z<Chunk_r.SIZE; ++z) {
@@ -148,7 +297,9 @@ public class Server_r {
                         BlockType neighbourBlock = world.GetBlockAt(neighbourChunkPos, neighbourBlockPos);
 
                         if ((neighbourBlock==BlockType.AIR && x==0) || (x!=0 && chunk.chunkBlocks[x - 1, y, z] == BlockType.AIR)) {
-                            chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.LEFT, blockPos);
+                            var faceData = Block.GetFaceData(Faces.LEFT, blockPos);
+                            chunkVert.AddRange(faceData);
+                            chunkUVs.AddRange(TextureData.GetUVs(chunk.chunkBlocks[x,y,z], Faces.LEFT));
                             addedFaces++;
                         }
                         neighbourBlockPos = new(0, y, z);
@@ -156,19 +307,25 @@ public class Server_r {
                         neighbourBlock = world.GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                         // Right face
                         if ((neighbourBlock==BlockType.AIR && x == Chunk_r.SIZE - 1) || (x != Chunk_r.SIZE-1 && chunk.chunkBlocks[x + 1, y, z] == BlockType.AIR)) {
-                            chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.RIGHT, blockPos);
+                            var faceData = Block.GetFaceData(Faces.RIGHT, blockPos);
+                            chunkVert.AddRange(faceData);
+                            chunkUVs.AddRange(TextureData.GetUVs(chunk.chunkBlocks[x, y, z], Faces.RIGHT));
                             addedFaces++;
                         }
 
                         // Bottom face
                         if (y == 0 || chunk.chunkBlocks[x, y - 1, z] == BlockType.AIR) {
-                            chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.BOTTOM, blockPos);
+                            var faceData = Block.GetFaceData(Faces.BOTTOM, blockPos);
+                            chunkVert.AddRange(faceData);
+                            chunkUVs.AddRange(TextureData.GetUVs(chunk.chunkBlocks[x, y, z], Faces.BOTTOM));
                             addedFaces++;
                         }
 
                         // Top face
                         if (y == Chunk_r.HEIGHT - 1 || chunk.chunkBlocks[x, y + 1, z] == BlockType.AIR) {
-                            chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.TOP, blockPos);
+                            var faceData = Block.GetFaceData(Faces.TOP, blockPos);
+                            chunkVert.AddRange(faceData);
+                            chunkUVs.AddRange(TextureData.GetUVs(chunk.chunkBlocks[x, y, z], Faces.TOP));
                             addedFaces++;
                         }
                         neighbourBlockPos = new(x, y, Chunk_r.SIZE-1);
@@ -176,7 +333,9 @@ public class Server_r {
                         neighbourBlock = world.GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                         // Back face
                         if ((neighbourBlock == BlockType.AIR && z == 0)|| (z != 0 && chunk.chunkBlocks[x, y, z - 1] == BlockType.AIR)) {
-                            chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.BACK, blockPos);
+                            var faceData = Block.GetFaceData(Faces.BACK, blockPos);
+                            chunkVert.AddRange(faceData);
+                            chunkUVs.AddRange(TextureData.GetUVs(chunk.chunkBlocks[x, y, z], Faces.BACK));
                             addedFaces++;
                         }
                         neighbourBlockPos = new(x, y, 0);
@@ -184,22 +343,50 @@ public class Server_r {
                         neighbourBlock = world.GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                         // Front face
                         if ((neighbourBlock == BlockType.AIR && z == Chunk_r.SIZE - 1) || (z != Chunk_r.SIZE-1 && chunk.chunkBlocks[x, y, z + 1] == BlockType.AIR)) {
-                            chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.FRONT, blockPos);
+                            var faceData = Block.GetFaceData(Faces.FRONT, blockPos);
+                            chunkVert.AddRange(faceData);
+                            chunkUVs.AddRange(TextureData.GetUVs(chunk.chunkBlocks[x, y, z], Faces.FRONT));
                             addedFaces++;
                         }
 
                         // Add indices for the added faces
-                        chunk.AddIndeces(addedFaces);
+                        for (int i = 0; i < addedFaces; ++i) {
+                            indeces.Add(0 + indexCount);
+                            indeces.Add(1 + indexCount);
+                            indeces.Add(2 + indexCount);
+                            indeces.Add(2 + indexCount);
+                            indeces.Add(3 + indexCount);
+                            indeces.Add(0 + indexCount);
+
+                            indexCount += 4;
+                        }
                         //chunkBlocks[x, y, z].ClearFaceData();
-                        chunk.AddedFaces = true;
-                        chunk.Redraw = false;
+                       
                     }
                 }
             }
         }
+
+
+        lockChunk.EnterWriteLock();
+        try {
+            chunk.chunkVert = chunkVert;
+            chunk.chunkUVs = chunkUVs;
+            chunk.chunkInd = indeces;
+            chunk.AddedFaces = true;
+            chunk.Redraw = false;
+            chunk.Built = false;
+            chunk.ShouldClearData = chunk.Redraw && !chunk.FirstDrawing;
+            
+        }
+        finally {
+            lockChunk.ExitWriteLock();
+        }
+
         if (!chunksToRender.ContainsKey(chunk.position)) {
             chunksToRender.TryAdd(chunk.position, chunk);
         }
+
     }
 
     public void AddChunkToMesh(Chunk_r chunk) {
@@ -239,10 +426,20 @@ public class Server_r {
 
     public void RenderChunks(ShaderProgram program) {
         foreach(var chunk in chunksToRender.Values) {
-            if(!chunk.Built)
-                chunk.BuildChunk();
-            chunk.Render(program);
-            chunk.AddedFaces = true;
+            lockChunk.EnterReadLock();
+            try {
+                if (chunk.ShouldClearData) {
+                    chunk.DeleteGL();
+                    chunk.ShouldClearData = false;
+                }
+                if (!chunk.Built)
+                    chunk.BuildChunk();
+                chunk.Render(program);
+                //chunk.AddedFaces = true;
+            }
+            finally {
+                lockChunk.ExitReadLock();
+            }
         }
     }
 

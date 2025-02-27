@@ -3,7 +3,8 @@
 public enum PacketType : byte {
     NONE, // will be used for setting up connection with client later
     REMESH,
-    SET_BLOCK,
+    DESTROY_BLOCK,
+    PLACE_BLOCK,
     REDRAW,
 
 }

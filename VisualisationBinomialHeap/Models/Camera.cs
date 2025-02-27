@@ -19,6 +19,8 @@ public class Camera {
     private float pitch;
     private float yawn = -90.0f;
 
+    public float range = 5.0f;
+
     private bool isFirstMove = true;
     public Vector2 lastPosition;
 
@@ -71,8 +73,8 @@ public class Camera {
         up = Vector3.Normalize(Vector3.Cross(right, front));
     }
 
-    public void InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
-
+    public List<ServerPacket> InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
+        List<ServerPacket> packetsToSend = [];
         if (input.IsKeyDown(Keys.W))
             WPressedHandle(e);
         //position = position + front * Speed * (float)e.Time;
@@ -120,7 +122,8 @@ public class Camera {
 
 
         if(mouse.IsButtonPressed(MouseButton.Left)) {
-            DestryBlock();
+            //DestryBlock();
+            packetsToSend.Add(new DestroyBlockPacket(position, front, range));
         }
 
         if (mouse.IsButtonPressed(MouseButton.Right))
@@ -139,7 +142,9 @@ public class Camera {
             yawn += dX * Sensitivity * (float)e.Time;
             pitch -= dY * Sensitivity * (float)e.Time;
         }
-       UpdateVectors();
+        UpdateVectors();
+
+        return packetsToSend;
     }
 
     private void HandleNumericalInput(KeyboardState input) {
@@ -218,7 +223,7 @@ public class Camera {
                     //world.MarkNeighboursForReDraw(chunk.position);
                     chunk.Redraw = true;
                     chunk.AddedFaces = false;
-                    chunk.Delete();
+                    chunk.DeleteGL();
                     //world.MeshChunks();
                     //chunk.Dirty = true;
 
@@ -300,7 +305,7 @@ public class Camera {
                     chunk.Redraw = true;
                     chunk.AddedFaces = false;
                     //world.MarkNeighboursForReDraw(chunk.position);
-                    chunk.Delete();
+                    chunk.DeleteGL();
                     //chunk.Dirty = true;
                     //world.MeshChunks();
 
@@ -493,7 +498,7 @@ public class Camera {
         return $"{posX},{posY},{posZ}";
     }
 
-    public void Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
-        InputController(input, mouse, e, window);
+    public List<ServerPacket> Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
+        return InputController(input, mouse, e, window);
     } 
 }

@@ -2,7 +2,7 @@
 public class Chunk_r {
     #region CONSTANTS
     public const byte SIZE = 16;
-    public const short HEIGHT = 64;
+    public const short HEIGHT = 256;
     #endregion
 
     #region CHUNK_DATA
@@ -25,10 +25,11 @@ public class Chunk_r {
     #endregion
 
     #region FLAGS
-    public bool Built { get; set; }
-    public bool Redraw { get; set; }
-    public bool AddedFaces { get; set; }
-    public bool FirstDrawing { get; set; }
+    public volatile bool Built;
+    public volatile bool Redraw;
+    public volatile bool AddedFaces;
+    public volatile bool FirstDrawing;
+    public volatile bool ShouldClearData;
     public bool Dirty { get; set; }
     #endregion
 
@@ -39,6 +40,7 @@ public class Chunk_r {
         AddedFaces = false;
         FirstDrawing = true;
         Dirty = false;
+        ShouldClearData = false;
 
         chunkBlocks = new BlockType[SIZE, HEIGHT, SIZE];
         heightMap = new short[SIZE, SIZE];
@@ -168,11 +170,26 @@ public class Chunk_r {
         Built = false;
     }
 
-    public void Delete() {
+    public void DeleteGL() {
         chunkVBO?.Delete();
         chunkUVVBO?.Delete();
         chunkVAO?.Delete();
         chunkIBO?.Delete();        
+        GL.Finish();
+
+        chunkInd.Clear();
+        chunkVert.Clear();
+        chunkUVs.Clear();
+
+        indexCount = 0;
+
+        Built = false;
+    }
+    public void Delete() {
+        chunkVBO?.Delete();
+        chunkUVVBO?.Delete();
+        chunkVAO?.Delete();
+        chunkIBO?.Delete();
         GL.Finish();
 
         chunkInd.Clear();
@@ -212,7 +229,7 @@ public class Chunk_r {
             Console.WriteLine($"Invalid block position to set: {chunkBlockPos}");
             return;
         }
-        chunkBlockPos = Chunk.ConvertToChunkBlockCoord(chunkBlockPos);
+        chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(chunkBlockPos);
         chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z] = blockType;
     }
 
@@ -246,9 +263,9 @@ public class Chunk_r {
     }
 
     public static bool InvalidBlockCoords(Vector3 chunkBlockPos) {
-        return chunkBlockPos.Y < 0 || chunkBlockPos.Y >= Chunk.HEIGHT ||
-               chunkBlockPos.X < 0 || chunkBlockPos.X >= Chunk.SIZE ||
-               chunkBlockPos.Z < 0 || chunkBlockPos.Z >= Chunk.SIZE;
+        return chunkBlockPos.Y < 0 || chunkBlockPos.Y >= Chunk_r.HEIGHT ||
+               chunkBlockPos.X < 0 || chunkBlockPos.X >= Chunk_r.SIZE ||
+               chunkBlockPos.Z < 0 || chunkBlockPos.Z >= Chunk_r.SIZE;
     }
 
     public static Vector3 ConvertToChunkCoords(Vector3 pos) {
@@ -256,14 +273,14 @@ public class Chunk_r {
         posX = (int)Math.Floor(pos.X / 16);
         posY = 0;
         posZ = (int)Math.Floor(pos.Z / 16);
-        return new Vector3(posX, posY, posZ)*Chunk.SIZE;
+        return new Vector3(posX, posY, posZ)*Chunk_r.SIZE;
     }
 
     public static Vector3 ConvertToChunkBlockCoord(Vector3 pos) {
         return new Vector3(
-            ModFloor((int)pos.X, Chunk.SIZE),
-            ModFloor((int)pos.Y, Chunk.HEIGHT),
-            ModFloor((int)pos.Z, Chunk.SIZE)
+            ModFloor((int)pos.X, Chunk_r.SIZE),
+            ModFloor((int)pos.Y, Chunk_r.HEIGHT),
+            ModFloor((int)pos.Z, Chunk_r.SIZE)
         );
     }
 
@@ -279,7 +296,7 @@ public class Chunk_r {
         if (currChunkPos.Z > 0)
             --currChunkPos.Z;
 
-        currChunkPos *= Chunk.SIZE;
+        currChunkPos *= Chunk_r.SIZE;
     }
     #endregion
 }
