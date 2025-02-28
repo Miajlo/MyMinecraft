@@ -1,6 +1,5 @@
 ﻿namespace MyMinecraft.Models;
 
-
 public class Block {
     public Vector3 position;
     public BlockType Type;

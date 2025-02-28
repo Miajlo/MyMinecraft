@@ -13,6 +13,10 @@ public class ServerPacket {
     //will need ip address or some other thing to know to which client to send the packet back
     public PacketType Type { get; set; }
 
+    public ServerPacket() {
+        Type = PacketType.NONE;
+    }
+
     public ServerPacket(PacketType type) {
         Type = type;
     }

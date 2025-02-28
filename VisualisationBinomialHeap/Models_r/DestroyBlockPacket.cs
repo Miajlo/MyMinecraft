@@ -6,10 +6,10 @@ public class DestroyBlockPacket : ServerPacket {
     public float playerRange;
 
 
-    public DestroyBlockPacket(Vector3 playerPos, Vector3 front, float playerRange):base(PacketType.DESTROY_BLOCK) {
+    public DestroyBlockPacket(Vector3 playerPos, Vector3 front, float playerRange) {
+        Type = PacketType.DESTROY_BLOCK;
         this.position = playerPos;
         this.front = front;
         this.playerRange = playerRange;
-
     }
 }

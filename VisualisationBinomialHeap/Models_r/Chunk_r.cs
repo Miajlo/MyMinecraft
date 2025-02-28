@@ -2,7 +2,7 @@
 public class Chunk_r {
     #region CONSTANTS
     public const byte SIZE = 16;
-    public const short HEIGHT = 256;
+    public const short HEIGHT = 64;
     #endregion
 
     #region CHUNK_DATA
@@ -84,22 +84,22 @@ public class Chunk_r {
 
         fnl.SetFractalType(FastNoiseLite.FractalType.FBm);  // fBm (Fractional Brownian Motion)
         fnl.SetFractalOctaves(4);      // Number of octaves
-        fnl.SetFractalLacunarity(2.0f); // Frequency multiplier per octave
-        fnl.SetFractalGain(0.5f);      // Amplitude multiplier per octave
+        fnl.SetFractalLacunarity(1.0f); // Frequency multiplier per octave
+        fnl.SetFractalGain(0.25f);      // Amplitude multiplier per octave
 
 
         fnl2.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
-        fnl2.SetFrequency(0.01f);
+        fnl2.SetFrequency(0.00001f);
 
         fnl2.SetFractalType(FastNoiseLite.FractalType.FBm);  // fBm (Fractional Brownian Motion)
         fnl2.SetFractalOctaves(8);      // Number of octaves
-        fnl2.SetFractalLacunarity(1.5f); // Frequency multiplier per octave
-        fnl2.SetFractalGain(0.1f);
+        fnl2.SetFractalLacunarity(4f); // Frequency multiplier per octave
+        fnl2.SetFractalGain(0.75f);
 
         for (var x = 0; x < SIZE; ++x) {
             for (var z = 0; z < SIZE; ++z) {
-                float noiseValue = fnl.GetNoise(x + position.X, z + position.Z) + fnl2.GetNoise(x+position.X, z+position.Z) ;
-                heightMap[x, z] = (short)Math.Clamp((noiseValue + 1)* 0.5 * HEIGHT, 0, HEIGHT - 1);
+                float noiseValue = fnl.GetNoise(x + position.X, z + position.Z)*HEIGHT*0.5f + fnl2.GetNoise(x+position.X, z+position.Z)*HEIGHT*0.35f + HEIGHT/2;
+                heightMap[x, z] = (short)Math.Clamp((noiseValue + 1), 0, HEIGHT - 1);
             }
         }
     }

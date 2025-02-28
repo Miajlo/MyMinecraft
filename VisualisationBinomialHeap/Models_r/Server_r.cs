@@ -1,5 +1,12 @@
-﻿namespace MyMinecraft.Models_r; 
+﻿using System.Net.Sockets;
+
+namespace MyMinecraft.Models_r; 
 public class Server_r {
+    #region CONNECTION_CONTEXT
+
+    #endregion
+
+
     #region THREAD_CONTEXT
     private Thread genThread;
     private Thread meshThread;
@@ -57,22 +64,31 @@ public class Server_r {
             genSem.Wait();
 
             while(chunksToGen.TryDequeue(out var chunkPos)) {
-                Chunk_r? toAddChunk;
-
-                if (world.IsLoadedChunk(chunkPos)) { // if loaded get it
-                    world.GetChunk(chunkPos, out toAddChunk);
-                }
-                else { //if not loaded generate it, it will need a check if not genrated later
-                    toAddChunk = new(chunkPos);
-                    toAddChunk.GenChunk();
-                    world.AddLoadedChunk(toAddChunk);
-                }
-
-                if(toAddChunk != null) { //add to meshing queue
-                    chunksToMesh.Enqueue(toAddChunk);
-                    meshSem.Release();
-                }
+                ThreadPool.QueueUserWorkItem(GenChunk, chunkPos);
             }
+        }
+    }
+
+    private void GenChunk(object? state) {
+        if (state is not Vector3i)
+            return;
+
+        Vector3i chunkPos = (Vector3i)state;
+
+        Chunk_r? toAddChunk;
+
+        if (world.IsLoadedChunk(chunkPos)) { // if loaded get it
+            world.GetChunk(chunkPos, out toAddChunk);
+        }
+        else { //if not loaded generate it, it will need a check if not genrated later
+            toAddChunk = new(chunkPos);
+            toAddChunk.GenChunk();
+            world.AddLoadedChunk(toAddChunk);
+        }
+
+        if (toAddChunk != null) { //add to meshing queue
+            chunksToMesh.Enqueue(toAddChunk);
+            meshSem.Release();
         }
     }
 
@@ -125,17 +141,123 @@ public class Server_r {
                 case PacketType.DESTROY_BLOCK:
                     TryDestroyBlock(packet as DestroyBlockPacket);
                     break;
+                case PacketType.PLACE_BLOCK:
+                    TryPlaceBlock(packet as PlaceBlockPacket);
+                    break;
                 default:
                     break;
             }
         }
     }
 
-    private void TryDestroyBlock(DestroyBlockPacket? packet) {
+    private void TryPlaceBlock(PlaceBlockPacket? packet) {
         if (packet == null)
             return;
 
-        
+        int x = (int)Math.Floor(packet.position.X);
+        int y = (int)Math.Floor(packet.position.Y);
+        int z = (int)Math.Floor(packet.position.Z);
+
+        int stepX = (packet.front.X > 0) ? 1 : -1;
+        int stepY = (packet.front.Y > 0) ? 1 : -1;
+        int stepZ = (packet.front.Z > 0) ? 1 : -1;
+
+        float tMaxX = (stepX > 0 ? (x + 1 - packet.position.X)
+                                 : (packet.position.X - x)) / Math.Abs(packet.front.X);
+        float tMaxY = (stepY > 0 ? (y + 1 - packet.position.Y)
+                                 : (packet.position.Y - y)) / Math.Abs(packet.front.Y);
+        float tMaxZ = (stepZ > 0 ? (z + 1 - packet.position.Z)
+        : (packet.position.Z - z)) / Math.Abs(packet.front.Z);
+
+        float tDeltaX = Math.Abs(1 / packet.front.X);
+        float tDeltaY = Math.Abs(1 / packet.front.Y);
+        float tDeltaZ = Math.Abs(1 / packet.front.Z);
+
+        float maxDistance = packet.playerRange; // Limit to 5 blocks
+        float traveledDistance = 0.0f;
+
+        Vector3i prevBlockPos = new(), prevChunkPos = new();
+        bool prevValSet = false;
+        BlockType prevBlock;
+
+
+        for (int i = 0; i < 100; ++i) {
+            Vector3i chunkPos = (Vector3i)Chunk_r.ConvertToChunkCoords(new(x, y, z));
+
+            Vector3i chunkBlockPos = (Vector3i)Chunk_r.ConvertToChunkBlockCoord(new Vector3(x, y, z));
+
+            if (y<Chunk_r.HEIGHT && world.GetChunk(chunkPos, out Chunk_r? chunk)) {
+                BlockType block = chunk.GetBlockAt(chunkBlockPos);
+
+                if (prevValSet && (prevChunkPos == chunkPos || !world.IsLoadedChunk(prevChunkPos)))
+                    prevBlock = chunk.GetBlockAt(prevBlockPos);
+                else if (prevValSet && prevChunkPos != chunkPos) {
+                    if (!world.GetChunk(prevChunkPos, out chunk))
+                        return;
+                    prevBlock = chunk.GetBlockAt(prevBlockPos);
+                }
+                else
+                    prevBlock = BlockType.AIR;
+
+
+                if (block != BlockType.AIR && prevValSet && prevBlock == BlockType.AIR) {
+                    lockChunk.EnterWriteLock();
+                    int remeshCount = 0;
+                    
+
+                    try {
+
+                        if (!world.GetChunk(prevChunkPos, out chunk))
+                            return;
+
+                        Console.WriteLine($"Hit block: {chunkBlockPos} {chunkPos}");
+                        chunk.SetBlockAt(prevBlockPos, packet.selectedBlock);
+                        chunk.Redraw = true;
+                        chunk.AddedFaces = false;
+
+                        chunksToMesh.Enqueue(chunk);
+
+                        remeshCount = MarkNeighboursForRedraw(chunk.position, chunkBlockPos) + 1;
+
+
+                    }
+                    finally {
+                        lockChunk.ExitWriteLock();
+                    }
+                    meshSem.Release(remeshCount);
+                    break;
+                }
+            }
+
+            // Step to the next voxel
+            if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+                traveledDistance = tMaxX;
+                tMaxX += tDeltaX;
+                x += stepX;
+            }
+            else if (tMaxY < tMaxZ) {
+                traveledDistance = tMaxY;
+                tMaxY += tDeltaY;
+                y += stepY;
+            }
+            else {
+                traveledDistance = tMaxZ;
+                tMaxZ += tDeltaZ;
+                z += stepZ;
+            }
+
+            if (traveledDistance > maxDistance)
+                break;
+
+            prevValSet = true;
+            prevBlockPos = chunkBlockPos;
+            prevChunkPos = chunkPos;
+        }
+    }
+
+    private void TryDestroyBlock(DestroyBlockPacket? packet) {
+        if (packet == null)
+            return;     
 
         int x = (int)Math.Floor(packet.position.X);
         int y = (int)Math.Floor(packet.position.Y);
