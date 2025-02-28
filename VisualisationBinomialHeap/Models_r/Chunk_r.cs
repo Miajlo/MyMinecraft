@@ -58,12 +58,15 @@ public class Chunk_r {
     #endregion
 
     #region GENERATION_METHODS
-    public void GenChunk() {
+    public List<SetBlockPacket> GenChunk() {
+
         GenHeightMap();
         GenChunkBlocks();
-        GenTrees();
+        var treeLeftovers = GenTrees();
 
         Console.WriteLine($"Generated chunk: {position}");
+
+        return treeLeftovers;
     }
 
     private void GenChunkBlocks() {
@@ -104,8 +107,54 @@ public class Chunk_r {
         }
     }
 
-    private void GenTrees() {
-        //TODO: implment it using white noise
+    private List<SetBlockPacket> GenTrees() {
+        FastNoiseLite treeNoise = new FastNoiseLite();
+        treeNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2S);
+        treeNoise.SetFrequency(0.03f);  // Slightly higher frequency for better spread
+        treeNoise.SetFractalOctaves(8);      // Number of octaves
+        treeNoise.SetFractalLacunarity(0.01f); // Frequency multiplier per octave
+        treeNoise.SetFractalGain(0.005f);
+        treeNoise.SetSeed(98765);
+
+        List<SetBlockPacket> treeLeftovers = [];
+
+        for (int x = 0; x < SIZE; x++) {
+            for (int z = 0; z < SIZE; z++) {
+                float treeValue = treeNoise.GetNoise(position.X+x, position.Z+z);
+
+                // Less strict threshold & extra randomness to break patterns
+                if (treeValue > 0.55f && treeValue < 0.6f && Hash(x, z) % 3 == 0) {
+                    treeLeftovers.AddRange(PlaceTree(x, z));
+                }
+            }
+        }
+
+        return treeLeftovers;
+    }
+
+    private int Hash(int x, int z) {
+        return (x * 735761 + z * 902002) ^ 54321;
+    }
+
+    private List<SetBlockPacket> PlaceTree(int sx, int sz) {
+        List<SetBlockPacket> treeLeftovers = [];
+        int height = heightMap[sx, sz];
+        sx-=5;
+        sz-=5;
+        for (int y = 0; y < Tree.HEIGHT; ++y) {
+            for (int x = 0; x < Tree.SIZE; ++x) {
+                for (int z = 0; z< Tree.SIZE; ++z) {
+                    Vector3i setBlockPos = new(sx+x, y+height, sz+z);
+                    if (InvalidBlockCoords(setBlockPos)) {
+                        treeLeftovers.Add(new(setBlockPos+position, (BlockType)Tree.treeBlocks[y, x, z]));
+                        continue; // for now ignore chunk borders
+                    }
+                    if (chunkBlocks[sx+x, y+height, sz+z] == BlockType.AIR)
+                        SetBlockAt(setBlockPos, (BlockType)Tree.treeBlocks[y, x, z]);
+                }
+            }
+        }
+        return treeLeftovers;
     }
     #endregion
 
@@ -290,7 +339,7 @@ public class Chunk_r {
         return result;
     }
 
-    public static void ConvertToWorldCoords(ref Vector3 currChunkPos) {
+    public static void ConvertToWorldCoords(ref Vector3i currChunkPos) {
         if (currChunkPos.X > 0)
             --currChunkPos.X;
         if (currChunkPos.Z > 0)

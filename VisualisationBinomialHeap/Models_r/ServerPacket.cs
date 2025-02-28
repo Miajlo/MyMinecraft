@@ -5,6 +5,7 @@ public enum PacketType : byte {
     REMESH,
     DESTROY_BLOCK,
     PLACE_BLOCK,
+    SET_BLOCK,
     REDRAW,
 
 }

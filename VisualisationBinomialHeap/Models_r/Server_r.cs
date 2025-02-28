@@ -17,6 +17,7 @@ public class Server_r {
     private SemaphoreSlim genSem;
     private SemaphoreSlim meshSem;
     private readonly ReaderWriterLockSlim lockChunk;
+    private CountdownEvent chunkCountdown = new CountdownEvent(0);
 
     private const string tMeshName = "MeshThread";
     private const string tGenName = "GenThread";
@@ -63,10 +64,41 @@ public class Server_r {
         while(runGenThread) {
             genSem.Wait();
 
-            while(chunksToGen.TryDequeue(out var chunkPos)) {
-                ThreadPool.QueueUserWorkItem(GenChunk, chunkPos);
+            int chunkCount = 0;
+            int releaseCount = 0;
+            int queueSize = chunksToGen.Count;
+            if (queueSize > 0) {
+                chunkCountdown.Reset(queueSize); // Reset to the number of chunks
+            }
+
+            while (chunksToGen.TryDequeue(out var chunkPos)) {
+                Interlocked.Increment(ref chunkCount);
+                ++releaseCount;
+
+                ThreadPool.QueueUserWorkItem(_ => {
+                    try {
+                        GenChunk(chunkPos);
+                    }
+                    finally {
+                        if (chunkCountdown.CurrentCount > 0) { // Prevent signaling when already zero
+                            chunkCountdown.Signal();
+                        }
+                    }
+                });
+            }
+
+            // Only wait if there were chunks processed
+            if (chunkCount > 0) {
+                chunkCountdown.Wait();
+            }
+
+            ProcessPackets();
+
+            if (releaseCount > 0) {
+                meshSem.Release(releaseCount);
             }
         }
+    
     }
 
     private void GenChunk(object? state) {
@@ -82,13 +114,15 @@ public class Server_r {
         }
         else { //if not loaded generate it, it will need a check if not genrated later
             toAddChunk = new(chunkPos);
-            toAddChunk.GenChunk();
+            var treePackets = toAddChunk.GenChunk();
             world.AddLoadedChunk(toAddChunk);
+            foreach (var packet in treePackets)
+                packets.Enqueue(packet);
         }
 
         if (toAddChunk != null) { //add to meshing queue
             chunksToMesh.Enqueue(toAddChunk);
-            meshSem.Release();
+            
         }
     }
 
@@ -144,8 +178,23 @@ public class Server_r {
                 case PacketType.PLACE_BLOCK:
                     TryPlaceBlock(packet as PlaceBlockPacket);
                     break;
+                case PacketType.SET_BLOCK:
+                    TrySetBlock(packet as SetBlockPacket);
+                    break;
                 default:
                     break;
+            }
+        }
+    }
+
+    private void TrySetBlock(SetBlockPacket? setBlockPacket) {
+        Vector3i chunkPos = Camera.GetChunkPos(setBlockPacket.blockPos);
+        Chunk_r.ConvertToWorldCoords(ref chunkPos);
+        Vector3i chunkBlockPos = (Vector3i)Chunk_r.ConvertToChunkBlockCoord(setBlockPacket.blockPos);
+
+        if(world.GetChunk(chunkPos, out var chunk)) {
+            if (chunk.GetBlockAt(chunkBlockPos) == BlockType.AIR) {
+                chunk.SetBlockAt(chunkBlockPos, setBlockPacket.blockType);
             }
         }
     }

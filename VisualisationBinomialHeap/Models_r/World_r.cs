@@ -65,6 +65,10 @@ public  class World_r {
     public bool IsLoadedChunk(Vector3 position) {
         return loadedChunks.ContainsKey(position);
     }
+
+    internal void AddTreesToLoadedChunks() {
+        throw new NotImplementedException();
+    }
     #endregion
 
 }
