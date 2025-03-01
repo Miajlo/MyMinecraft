@@ -29,6 +29,9 @@ public class Chunk_r {
     public volatile bool Redraw;
     public volatile bool AddedFaces;
     public volatile bool FirstDrawing;
+    public volatile bool Generated;
+    public volatile bool DecorationAdded;
+    public volatile bool Dirty;
     public volatile bool ShouldClearData;
     public bool Dirty { get; set; }
     #endregion
