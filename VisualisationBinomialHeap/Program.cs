@@ -2,7 +2,7 @@
 
 public class Program {
     public static void Main() {
-        using (Window win = new(1800, 1000, "BinomialHeap")) {
+        using (Window win = new(900, 900, "BinomialHeap")) {
             win.Run();
             Console.WriteLine("Drew the window");
         }

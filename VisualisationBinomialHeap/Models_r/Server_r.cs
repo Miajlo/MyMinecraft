@@ -1,9 +1,12 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 
 namespace MyMinecraft.Models_r; 
 public class Server_r {
     #region CONNECTION_CONTEXT
-
+    TcpListener listener; //some day one day
+    ushort port;
+    IPAddress serverAddress;
     #endregion
 
 
@@ -21,10 +24,11 @@ public class Server_r {
     private const string tMeshName = "MeshThread";
     private const string tGenName = "GenThread";
 
-    private ConcurrentQueue<Vector3i> chunksToGen;
+    private ConcurrentQueue<Tuple<Vector3i, bool>> chunksToGen;
     private ConcurrentQueue<Chunk_r> chunksToMesh;
     private ConcurrentDictionary<Vector3, Chunk_r> chunksToRender;
     private ConcurrentQueue<ServerPacket> packets;
+    private ConcurrentDictionary<Vector3i, List<CrossChunkData>> crossChunkData;
     #endregion
 
     #region DATA
@@ -43,6 +47,7 @@ public class Server_r {
         chunksToGen = [];
         chunksToMesh = [];
         chunksToRender = [];
+        crossChunkData = [];
         packets = [];
 
         genSem = new SemaphoreSlim(0);
@@ -63,54 +68,102 @@ public class Server_r {
         while(runGenThread) {
             genSem.Wait();
 
-            while(chunksToGen.TryDequeue(out var chunkPos)) {
-                ThreadPool.QueueUserWorkItem(GenChunk, chunkPos);
+            int releaseCount = 0;
+            List<Chunk_r> chunksToAdd = [];
+            while (chunksToGen.TryDequeue(out var chunkGenInfo)) {
+                ++releaseCount;
+                //if(!chunkGenInfo.Item2)
+                chunksToAdd.Add(GenChunk(chunkGenInfo.Item1, chunkGenInfo.Item2));
+                //var toAdd = GenChunk(chunkGenInfo.Item1, chunkGenInfo.Item2);                
             }
+
+            foreach(var chunk in chunksToAdd) {
+                if(this.crossChunkData.TryGetValue(chunk.position, out var blockData)) {
+                    foreach(var block in blockData) {
+                        Vector3i blockPos = Chunk_r.ConvertToChunkBlockCoord((Vector3)block.globalBlockPos);
+                        chunk.SetBlockAt(blockPos, block.blockType);
+                    }
+                    if(chunk != null)
+                        chunksToMesh.Enqueue(chunk);                                            
+                }
+            }
+            if(releaseCount > 0)
+                meshSem.Release(releaseCount);
         }
     }
 
-    private void GenChunk(object? state) {
-        if (state is not Vector3i)
-            return;
+    private Chunk_r? GenChunk(Vector3i chunkPos, bool usedForGen) {
+        //if (state is not Vector3i)
+        //    return;
 
-        Vector3i chunkPos = (Vector3i)state;
+        //Vector3i chunkPos = (Vector3i)state;
 
         Chunk_r? toAddChunk;
 
         if (world.IsLoadedChunk(chunkPos)) { // if loaded get it
             world.GetChunk(chunkPos, out toAddChunk);
+            if(toAddChunk.UsedForStructGen) {
+                toAddChunk.GenChunk();
+                toAddChunk.UsedForStructGen = false;
+            }
         }
         else { //if not loaded generate it, it will need a check if not genrated later
             toAddChunk = new(chunkPos);
-            toAddChunk.GenChunk();
+            if(!usedForGen)
+                toAddChunk.GenChunk();
+            var chunkCrossData = toAddChunk.GenTrees();
             world.AddLoadedChunk(toAddChunk);
+
+            foreach (var data in chunkCrossData) {
+                var posChunk = Camera.GetChunkPos(data.globalBlockPos);
+                Chunk_r.ConvertToWorldCoords(ref posChunk);
+
+                if (this.crossChunkData.TryGetValue(posChunk, out var list)) {
+                    if (list == null)
+                        list = new();
+                    list.Add(data);
+                }
+                else {
+                    this.crossChunkData.TryAdd(posChunk, new());
+                    if (this.crossChunkData.TryGetValue(posChunk, out list)) {
+                        list.Add(data);
+                    }
+                }
+            }
         }
 
-        if (toAddChunk != null) { //add to meshing queue
-            chunksToMesh.Enqueue(toAddChunk);
-            meshSem.Release();
-        }
+        return toAddChunk;
     }
 
     private void AddChunksToGen(Vector3 currChunkPos) {
-        int offset = renderDistance * Chunk.SIZE;
+        int offset = (renderDistance )* Chunk_r.SIZE;
 
         int XbottomBound = (int)(currChunkPos.X) - offset;
         int ZbottomBound = (int)(currChunkPos.Z) - offset;
         int XtopBound = XbottomBound + 2*offset;
         int ZtopBound = ZbottomBound + 2*offset;
 
-        for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
-            for (int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
+        List<Tuple<Vector3i, bool>> chunkGenInfo = [];
+
+        for (int i = XbottomBound; i <= XtopBound; i+=Chunk_r.SIZE) {
+            for (int j = ZbottomBound; j <= ZtopBound; j+=Chunk_r.SIZE) {
                 //Console.WriteLine($"i = {i}, j = {j}");
                 Vector3i copyChunkPos = new(i, 0, j);
-
-                chunksToGen.Enqueue(copyChunkPos);
+                bool usedForGen = (i == XbottomBound || i == XtopBound || j ==ZbottomBound || j==ZtopBound)||false;
+                chunkGenInfo.Add(new(copyChunkPos, usedForGen));
                 //genSem.Release();
             }
 
         }
 
+        chunkGenInfo.Sort((a, b) =>
+                        Math.Abs(Vector3.Distance(a.Item1, currChunkPos))
+                        .CompareTo(Math.Abs(Vector3.Distance(b.Item1, currChunkPos))));
+
+        foreach (var info in chunkGenInfo)
+            chunksToGen.Enqueue(info);
+
+        //genSem.Release();
     }
 
     private void RemoveFarChunks(Vector3 currChunkPos) {
@@ -550,6 +603,8 @@ public class Server_r {
 
     public void RenderChunks(ShaderProgram program) {
         foreach(var chunk in chunksToRender.Values) {
+            if (chunk.UsedForStructGen)
+                continue;
             lockChunk.EnterReadLock();
             try {
                 if (chunk.ShouldClearData) {

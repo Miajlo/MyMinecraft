@@ -33,7 +33,7 @@ public class Chunk_r {
     public volatile bool DecorationAdded;
     public volatile bool Dirty;
     public volatile bool ShouldClearData;
-    public bool Dirty { get; set; }
+    public volatile bool UsedForStructGen;
     #endregion
 
     #region CONSTRUCTORS
@@ -44,6 +44,7 @@ public class Chunk_r {
         FirstDrawing = true;
         Dirty = false;
         ShouldClearData = false;
+        UsedForStructGen = false;
 
         chunkBlocks = new BlockType[SIZE, HEIGHT, SIZE];
         heightMap = new short[SIZE, SIZE];
@@ -61,22 +62,23 @@ public class Chunk_r {
     #endregion
 
     #region GENERATION_METHODS
-    public List<SetBlockPacket> GenChunk() {
+    public void GenChunk() {
 
         GenHeightMap();
         GenChunkBlocks();
-        var treeLeftovers = GenTrees();
+        //var treeLeftovers = GenTrees();
 
         Console.WriteLine($"Generated chunk: {position}");
 
-        return treeLeftovers;
+        //return treeLeftovers;
     }
 
     private void GenChunkBlocks() {
         for (int x = 0; x < SIZE; ++x) {
             for (int z = 0; z < SIZE; ++z) {
                 for (int y = 0; y < HEIGHT; ++y) { 
-                    chunkBlocks[x, y, z] = GetBlockType(x, y, z);
+                    chunkBlocks[x, y, z] = chunkBlocks[x,y,z] == BlockType.AIR ?
+                                           GetBlockType(x, y, z):chunkBlocks[x,y,z];
                 }
             }
         }
@@ -100,7 +102,7 @@ public class Chunk_r {
         fnl2.SetFractalType(FastNoiseLite.FractalType.FBm);  // fBm (Fractional Brownian Motion)
         fnl2.SetFractalOctaves(8);      // Number of octaves
         fnl2.SetFractalLacunarity(4f); // Frequency multiplier per octave
-        fnl2.SetFractalGain(0.75f);
+        fnl2.SetFractalGain(0.7f);
 
         for (var x = 0; x < SIZE; ++x) {
             for (var z = 0; z < SIZE; ++z) {
@@ -110,16 +112,16 @@ public class Chunk_r {
         }
     }
 
-    private List<SetBlockPacket> GenTrees() {
+    public List<CrossChunkData> GenTrees() {
         FastNoiseLite treeNoise = new FastNoiseLite();
         treeNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2S);
-        treeNoise.SetFrequency(0.03f);  // Slightly higher frequency for better spread
+        treeNoise.SetFrequency(0.5f);  // Slightly higher frequency for better spread
         treeNoise.SetFractalOctaves(8);      // Number of octaves
-        treeNoise.SetFractalLacunarity(0.01f); // Frequency multiplier per octave
-        treeNoise.SetFractalGain(0.005f);
+        treeNoise.SetFractalLacunarity(0.0001f); // Frequency multiplier per octave
+        treeNoise.SetFractalGain(0.0004f);
         treeNoise.SetSeed(98765);
 
-        List<SetBlockPacket> treeLeftovers = [];
+        List<CrossChunkData> treeLeftovers = [];
 
         for (int x = 0; x < SIZE; x++) {
             for (int z = 0; z < SIZE; z++) {
@@ -139,17 +141,16 @@ public class Chunk_r {
         return (x * 735761 + z * 902002) ^ 54321;
     }
 
-    private List<SetBlockPacket> PlaceTree(int sx, int sz) {
-        List<SetBlockPacket> treeLeftovers = [];
+    private List<CrossChunkData> PlaceTree(int sx, int sz) {
+        List<CrossChunkData> treeLeftovers = [];
         int height = heightMap[sx, sz];
-        sx-=5;
-        sz-=5;
+  
         for (int y = 0; y < Tree.HEIGHT; ++y) {
             for (int x = 0; x < Tree.SIZE; ++x) {
                 for (int z = 0; z< Tree.SIZE; ++z) {
                     Vector3i setBlockPos = new(sx+x, y+height, sz+z);
                     if (InvalidBlockCoords(setBlockPos)) {
-                        treeLeftovers.Add(new(setBlockPos+position, (BlockType)Tree.treeBlocks[y, x, z]));
+                        treeLeftovers.Add(new((BlockType)Tree.treeBlocks[y, x, z], setBlockPos+position));
                         continue; // for now ignore chunk borders
                     }
                     if (chunkBlocks[sx+x, y+height, sz+z] == BlockType.AIR)
@@ -328,8 +329,8 @@ public class Chunk_r {
         return new Vector3(posX, posY, posZ)*Chunk_r.SIZE;
     }
 
-    public static Vector3 ConvertToChunkBlockCoord(Vector3 pos) {
-        return new Vector3(
+    public static Vector3i ConvertToChunkBlockCoord(Vector3 pos) {
+        return new Vector3i(
             ModFloor((int)pos.X, Chunk_r.SIZE),
             ModFloor((int)pos.Y, Chunk_r.HEIGHT),
             ModFloor((int)pos.Z, Chunk_r.SIZE)

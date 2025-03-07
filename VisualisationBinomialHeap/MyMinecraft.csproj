@@ -17,4 +17,8 @@
     <ProjectReference Include="..\BinomialHeap\BinomialHeapLibrary.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="SavedChunks\" />
+  </ItemGroup>
+
 </Project>
