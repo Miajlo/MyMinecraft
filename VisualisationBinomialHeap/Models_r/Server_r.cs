@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 
 namespace MyMinecraft.Models_r; 
@@ -72,22 +73,25 @@ public class Server_r {
             List<Chunk_r> chunksToAdd = [];
             while (chunksToGen.TryDequeue(out var chunkGenInfo)) {
                 ++releaseCount;
-                //if(!chunkGenInfo.Item2)
-                chunksToAdd.Add(GenChunk(chunkGenInfo.Item1, chunkGenInfo.Item2));
-                //var toAdd = GenChunk(chunkGenInfo.Item1, chunkGenInfo.Item2);                
+
+                var toAddChunk = GenChunk(chunkGenInfo.Item1, chunkGenInfo.Item2);
+                toAddChunk.UsedForStructGen = chunkGenInfo.Item2;
+                chunksToAdd.Add(toAddChunk);
+                //chunksToMesh.Enqueue(GenChunk(chunkGenInfo.Item1, chunkGenInfo.Item2));
+                //meshSem.Release();
             }
 
-            foreach(var chunk in chunksToAdd) {
-                if(this.crossChunkData.TryGetValue(chunk.position, out var blockData)) {
-                    foreach(var block in blockData) {
-                        Vector3i blockPos = Chunk_r.ConvertToChunkBlockCoord((Vector3)block.globalBlockPos);
-                        chunk.SetBlockAt(blockPos, block.blockType);
+            foreach (var chunk in chunksToAdd) {
+                if (this.crossChunkData.TryGetValue(chunk.position, out var blockData)) {
+                    foreach (var block in blockData) {
+                        chunk.SetBlockAt(block.blockPos, block.blockType);
                     }
-                    if(chunk != null)
-                        chunksToMesh.Enqueue(chunk);                                            
+                    // Remove data after applying it to avoid reapplying on reload
+                    this.crossChunkData.TryRemove(chunk.position, out _);
                 }
+                chunksToMesh.Enqueue(chunk);
             }
-            if(releaseCount > 0)
+            if (releaseCount > 0)
                 meshSem.Release(releaseCount);
         }
     }
@@ -102,41 +106,33 @@ public class Server_r {
 
         if (world.IsLoadedChunk(chunkPos)) { // if loaded get it
             world.GetChunk(chunkPos, out toAddChunk);
-            if(toAddChunk.UsedForStructGen) {
+            if (toAddChunk.UsedForStructGen) {
                 toAddChunk.GenChunk();
                 toAddChunk.UsedForStructGen = false;
+                chunksToMesh.Enqueue(toAddChunk);
+                meshSem.Release();
             }
         }
         else { //if not loaded generate it, it will need a check if not genrated later
             toAddChunk = new(chunkPos);
-            if(!usedForGen)
+            if (!usedForGen)
                 toAddChunk.GenChunk();
             var chunkCrossData = toAddChunk.GenTrees();
             world.AddLoadedChunk(toAddChunk);
 
-            foreach (var data in chunkCrossData) {
-                var posChunk = Camera.GetChunkPos(data.globalBlockPos);
-                Chunk_r.ConvertToWorldCoords(ref posChunk);
-
-                if (this.crossChunkData.TryGetValue(posChunk, out var list)) {
-                    if (list == null)
-                        list = new();
-                    list.Add(data);
+            foreach (var pair in chunkCrossData) {
+                if (!this.crossChunkData.TryGetValue(pair.Key, out var list)) {
+                    list = new List<CrossChunkData>(); // Create new list if it doesn't exist
+                    this.crossChunkData[pair.Key] = list;
                 }
-                else {
-                    this.crossChunkData.TryAdd(posChunk, new());
-                    if (this.crossChunkData.TryGetValue(posChunk, out list)) {
-                        list.Add(data);
-                    }
-                }
+                list.AddRange(pair.Value); // Add tree blocks
             }
         }
-
         return toAddChunk;
     }
 
     private void AddChunksToGen(Vector3 currChunkPos) {
-        int offset = (renderDistance )* Chunk_r.SIZE;
+        int offset = (renderDistance)* Chunk_r.SIZE;
 
         int XbottomBound = (int)(currChunkPos.X) - offset;
         int ZbottomBound = (int)(currChunkPos.Z) - offset;
@@ -149,7 +145,7 @@ public class Server_r {
             for (int j = ZbottomBound; j <= ZtopBound; j+=Chunk_r.SIZE) {
                 //Console.WriteLine($"i = {i}, j = {j}");
                 Vector3i copyChunkPos = new(i, 0, j);
-                bool usedForGen = (i == XbottomBound || i == XtopBound || j ==ZbottomBound || j==ZtopBound)||false;
+                bool usedForGen = false;
                 chunkGenInfo.Add(new(copyChunkPos, usedForGen));
                 //genSem.Release();
             }
@@ -167,16 +163,63 @@ public class Server_r {
     }
 
     private void RemoveFarChunks(Vector3 currChunkPos) {
+        //int remeshCount = 0;
         foreach (var chunk in chunksToRender.Values) {
             var chunkPos = chunk.position;
             if (Math.Abs(currChunkPos.X - chunkPos.X)/Chunk.SIZE >= renderDistance + 1 ||
                 Math.Abs(currChunkPos.Z - chunkPos.Z)/Chunk.SIZE >= renderDistance + 1) {
                 //chunk.Unload();
                 chunk.Delete();
+                //remeshCount += MarkNeighboursForRedraw(chunk.position);
+                
                 _ = chunksToRender.TryRemove(chunk.position, out _);
                 _ = world.RemoveChunk(chunk.position);
             }
         }
+        //if (remeshCount>0)
+        //    meshSem.Release(remeshCount);
+    }
+
+    private int MarkNeighboursForRedraw(Vector3i position) {
+        int remeshCount = 0;
+        Vector3i checkPos = new(position.X+16, position.Y, position.Z);
+        Chunk_r? neighbour;
+        if (world.GetChunk(checkPos, out neighbour)) {
+            neighbour.Redraw = true;
+            neighbour.AddedFaces = false;
+            if (!chunksToMesh.Contains(neighbour)) {
+                chunksToMesh.Enqueue(neighbour);
+                ++remeshCount;
+            }
+        }
+        checkPos = new(position.X, position.Y, position.Z-16);
+        if (world.GetChunk(checkPos, out neighbour)) {
+            neighbour.Redraw = true;
+            neighbour.AddedFaces = false;
+            if (!chunksToMesh.Contains(neighbour)) {
+                chunksToMesh.Enqueue(neighbour);
+                ++remeshCount;
+            }
+        }
+        checkPos = new(position.X, position.Y, position.Z+16);
+        if (world.GetChunk(checkPos, out neighbour)) {
+            neighbour.Redraw = true;
+            neighbour.AddedFaces = false;
+            if (!chunksToMesh.Contains(neighbour)) {
+                chunksToMesh.Enqueue(neighbour);
+                ++remeshCount;
+            }
+        }
+        checkPos = new(position.X-16, position.Y, position.Z);
+        if (world.GetChunk(checkPos, out neighbour)) {
+            neighbour.Redraw = true;
+            neighbour.AddedFaces = false;
+            if (!chunksToMesh.Contains(neighbour)) {
+                chunksToMesh.Enqueue(neighbour);
+                ++remeshCount;
+            }
+        }
+        return remeshCount;
     }
 
     public void UpdateQueues(Vector3i currChunkPos) {
@@ -442,6 +485,9 @@ public class Server_r {
             meshSem.Wait();
 
             if(chunksToMesh.TryDequeue(out var chunk)) {
+                //if (chunk.UsedForStructGen)
+                //    chunksToMesh.Enqueue(chunk);
+                
                 MeshChunk(ref chunk);
             }
         }
@@ -450,7 +496,7 @@ public class Server_r {
     private void MeshChunk(ref Chunk_r chunk) {
         lockChunk.EnterReadLock();
         try {
-            if (chunk.AddedFaces || !chunk.Redraw)
+            if (chunk.AddedFaces || !chunk.Redraw || chunk.UsedForStructGen)
                 return;
         }
         finally {
@@ -603,21 +649,21 @@ public class Server_r {
 
     public void RenderChunks(ShaderProgram program) {
         foreach(var chunk in chunksToRender.Values) {
-            if (chunk.UsedForStructGen)
-                continue;
-            lockChunk.EnterReadLock();
-            try {
-                if (chunk.ShouldClearData) {
-                    chunk.DeleteGL();
-                    chunk.ShouldClearData = false;
+            if (!chunk.UsedForStructGen) {
+                lockChunk.EnterReadLock();
+                try {
+                    if (chunk.ShouldClearData) {
+                        chunk.DeleteGL();
+                        chunk.ShouldClearData = false;
+                    }
+                    if (!chunk.Built)
+                        chunk.BuildChunk();
+                    chunk.Render(program);
+                    //chunk.AddedFaces = true;
                 }
-                if (!chunk.Built)
-                    chunk.BuildChunk();
-                chunk.Render(program);
-                //chunk.AddedFaces = true;
-            }
-            finally {
-                lockChunk.ExitReadLock();
+                finally {
+                    lockChunk.ExitReadLock();
+                }
             }
         }
     }

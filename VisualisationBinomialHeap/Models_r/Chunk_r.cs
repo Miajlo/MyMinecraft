@@ -53,18 +53,19 @@ public class Chunk_r {
         chunkVert = [];
         chunkInd = [];
 
-        indexCount = 0;
+        indexCount = 0;     
     }
 
     public Chunk_r(Vector3i position) : this() {
         this.position = position;
+        GenHeightMap();
     }
     #endregion
 
     #region GENERATION_METHODS
     public void GenChunk() {
 
-        GenHeightMap();
+        
         GenChunkBlocks();
         //var treeLeftovers = GenTrees();
 
@@ -112,7 +113,7 @@ public class Chunk_r {
         }
     }
 
-    public List<CrossChunkData> GenTrees() {
+    public Dictionary<Vector3i,List<CrossChunkData>> GenTrees() {
         FastNoiseLite treeNoise = new FastNoiseLite();
         treeNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2S);
         treeNoise.SetFrequency(0.5f);  // Slightly higher frequency for better spread
@@ -121,7 +122,7 @@ public class Chunk_r {
         treeNoise.SetFractalGain(0.0004f);
         treeNoise.SetSeed(98765);
 
-        List<CrossChunkData> treeLeftovers = [];
+        Dictionary<Vector3i, List<CrossChunkData>> treeLeftovers = [];
 
         for (int x = 0; x < SIZE; x++) {
             for (int z = 0; z < SIZE; z++) {
@@ -129,7 +130,7 @@ public class Chunk_r {
 
                 // Less strict threshold & extra randomness to break patterns
                 if (treeValue > 0.55f && treeValue < 0.6f && Hash(x, z) % 3 == 0) {
-                    treeLeftovers.AddRange(PlaceTree(x, z));
+                    PlaceTree(x, z, treeLeftovers);
                 }
             }
         }
@@ -141,16 +142,32 @@ public class Chunk_r {
         return (x * 735761 + z * 902002) ^ 54321;
     }
 
-    private List<CrossChunkData> PlaceTree(int sx, int sz) {
-        List<CrossChunkData> treeLeftovers = [];
+    private void PlaceTree(int sx, int sz, Dictionary<Vector3i, List<CrossChunkData>> dict) {      
         int height = heightMap[sx, sz];
-  
+        sx-=3;
+        sz-=3;
+
         for (int y = 0; y < Tree.HEIGHT; ++y) {
             for (int x = 0; x < Tree.SIZE; ++x) {
                 for (int z = 0; z< Tree.SIZE; ++z) {
                     Vector3i setBlockPos = new(sx+x, y+height, sz+z);
                     if (InvalidBlockCoords(setBlockPos)) {
-                        treeLeftovers.Add(new((BlockType)Tree.treeBlocks[y, x, z], setBlockPos+position));
+                        Vector3i copySetBlockPos = setBlockPos;                        
+                        Vector3i chunkPos = (Vector3i)ConvertToChunkCoords((Vector3i)(setBlockPos+position));
+                        copySetBlockPos = Chunk_r.ConvertToChunkBlockCoord(copySetBlockPos);
+
+                        Vector3i chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(copySetBlockPos);
+
+                        // Ensure the chunk entry exists
+                        if (!dict.TryGetValue(chunkPos, out var list)) {
+                            list = new List<CrossChunkData>();
+                            dict[chunkPos] = list;
+                        }
+
+                        // Add the block data with corrected positions
+                        list.Add(new CrossChunkData((BlockType)Tree.treeBlocks[y, x, z], chunkBlockPos));
+
+
                         continue; // for now ignore chunk borders
                     }
                     if (chunkBlocks[sx+x, y+height, sz+z] == BlockType.AIR)
@@ -158,7 +175,6 @@ public class Chunk_r {
                 }
             }
         }
-        return treeLeftovers;
     }
     #endregion
 
@@ -337,11 +353,16 @@ public class Chunk_r {
         );
     }
 
+    //private static int ModFloor(int value, int mod) {
+    //    int result = value % mod;
+    //    if (result < 0) result += mod; // Fix negative values
+    //    return result;
+    //}
+
     private static int ModFloor(int value, int mod) {
-        int result = value % mod;
-        if (result < 0) result += mod; // Fix negative values
-        return result;
+        return ((value % mod) + mod) % mod;
     }
+
 
     public static void ConvertToWorldCoords(ref Vector3i currChunkPos) {
         if (currChunkPos.X > 0)
