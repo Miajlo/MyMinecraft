@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using MyMinecraft.Models;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 
@@ -87,9 +88,20 @@ public class Server_r {
                         chunk.SetBlockAt(block.blockPos, block.blockType);
                     }
                     // Remove data after applying it to avoid reapplying on reload
-                    this.crossChunkData.TryRemove(chunk.position, out _);
+                    
                 }
-                chunksToMesh.Enqueue(chunk);
+
+                if (chunk.UsedForStructGen || !chunk.Generated) {
+                    chunk.GenChunk();  // Force regeneration
+                    chunk.Generated = true;
+                    chunk.UsedForStructGen = false;
+                    int remeshCount = MarkNeighboursForRedraw(chunk.position);
+
+                    if (remeshCount > 0)
+                        meshSem.Release(remeshCount);
+                }
+                this.crossChunkData.TryRemove(chunk.position, out _);
+                chunksToMesh.Enqueue(chunk);                
             }
             if (releaseCount > 0)
                 meshSem.Release(releaseCount);
@@ -105,13 +117,7 @@ public class Server_r {
         Chunk_r? toAddChunk;
 
         if (world.IsLoadedChunk(chunkPos)) { // if loaded get it
-            world.GetChunk(chunkPos, out toAddChunk);
-            if (toAddChunk.UsedForStructGen) {
-                toAddChunk.GenChunk();
-                toAddChunk.UsedForStructGen = false;
-                chunksToMesh.Enqueue(toAddChunk);
-                meshSem.Release();
-            }
+            world.GetChunk(chunkPos, out toAddChunk);            
         }
         else { //if not loaded generate it, it will need a check if not genrated later
             toAddChunk = new(chunkPos);
@@ -145,19 +151,20 @@ public class Server_r {
             for (int j = ZbottomBound; j <= ZtopBound; j+=Chunk_r.SIZE) {
                 //Console.WriteLine($"i = {i}, j = {j}");
                 Vector3i copyChunkPos = new(i, 0, j);
+                if (world.IsLoadedChunk(copyChunkPos))
+                    continue;
                 bool usedForGen = false;
-                chunkGenInfo.Add(new(copyChunkPos, usedForGen));
+                chunksToGen.Enqueue(new(copyChunkPos, usedForGen));
                 //genSem.Release();
             }
 
         }
 
-        chunkGenInfo.Sort((a, b) =>
-                        Math.Abs(Vector3.Distance(a.Item1, currChunkPos))
-                        .CompareTo(Math.Abs(Vector3.Distance(b.Item1, currChunkPos))));
+        //chunkGenInfo = chunkGenInfo.OrderBy(x =>
+        //Vector3.Distance(x.Item1, currChunkPos)).ToList();
 
-        foreach (var info in chunkGenInfo)
-            chunksToGen.Enqueue(info);
+        //foreach (var info in chunkGenInfo)
+        //    chunksToGen.Enqueue(info);
 
         //genSem.Release();
     }
@@ -166,16 +173,23 @@ public class Server_r {
         //int remeshCount = 0;
         foreach (var chunk in chunksToRender.Values) {
             var chunkPos = chunk.position;
-            if (Math.Abs(currChunkPos.X - chunkPos.X)/Chunk.SIZE >= renderDistance + 1 ||
-                Math.Abs(currChunkPos.Z - chunkPos.Z)/Chunk.SIZE >= renderDistance + 1) {
-                //chunk.Unload();
+            if (Math.Abs(currChunkPos.X - chunkPos.X)/Chunk_r.SIZE >= renderDistance + 1 ||
+                Math.Abs(currChunkPos.Z - chunkPos.Z)/Chunk_r.SIZE >= renderDistance + 1) {
+                
                 chunk.Delete();
-                //remeshCount += MarkNeighboursForRedraw(chunk.position);
+                
                 
                 _ = chunksToRender.TryRemove(chunk.position, out _);
-                _ = world.RemoveChunk(chunk.position);
+                try {
+                    _ = world.RemoveChunk(chunk.position);
+                }
+                catch(ArgumentException argEx) {
+                    Console.WriteLine(argEx.Message);
+                }
             }
         }
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
         //if (remeshCount>0)
         //    meshSem.Release(remeshCount);
     }
@@ -395,9 +409,7 @@ public class Server_r {
                         chunk.SetBlockAt(chunkBlockPos, BlockType.AIR);
                         chunk.Redraw = true;
                         chunk.AddedFaces = false;
-                        //world.MarkNeighboursForReDraw(chunk.position);
-                        //chunk.DeleteGL();
-
+                       
                         chunksToMesh.Enqueue(chunk);
 
                         remeshCount = MarkNeighboursForRedraw(chunk.position, chunkBlockPos) + 1; 

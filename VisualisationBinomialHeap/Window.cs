@@ -13,7 +13,7 @@ public class Window : GameWindow {
     private Stopwatch stopwatch;
     private int frameCount;
 
-    public int renderDistance = 2;
+    public int renderDistance = 5;
     public World_r world = new();
     
     Camera? camera;

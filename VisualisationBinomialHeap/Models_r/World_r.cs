@@ -38,7 +38,7 @@ public  class World_r {
     public Chunk_r? RemoveChunk(Vector3 position) {
 
         if (!loadedChunks.TryRemove(position, out var chunk))
-            throw new ArgumentException($"Chunk not loaded: {position}");
+           throw new ArgumentException($"[ERROR]: Chunk not loaded: {position}");
 
         if (chunk.Dirty)
             chunk.SaveToFile();

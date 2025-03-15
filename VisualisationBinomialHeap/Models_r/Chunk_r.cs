@@ -259,6 +259,12 @@ public class Chunk_r {
         chunkUVVBO?.Delete();
         chunkVAO?.Delete();
         chunkIBO?.Delete();
+
+        GL.BindVertexArray(0);
+        GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+        GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+
+
         GL.Finish();
 
         chunkInd.Clear();
