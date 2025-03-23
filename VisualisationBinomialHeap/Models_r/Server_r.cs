@@ -151,8 +151,8 @@ public class Server_r {
             for (int j = ZbottomBound; j <= ZtopBound; j+=Chunk_r.SIZE) {
                 //Console.WriteLine($"i = {i}, j = {j}");
                 Vector3i copyChunkPos = new(i, 0, j);
-                if (world.IsLoadedChunk(copyChunkPos))
-                    continue;
+                //if (world.IsLoadedChunk(copyChunkPos))
+                //    continue;
                 bool usedForGen = false;
                 chunksToGen.Enqueue(new(copyChunkPos, usedForGen));
                 //genSem.Release();
@@ -188,8 +188,8 @@ public class Server_r {
                 }
             }
         }
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
+        //GC.Collect();
+        //GC.WaitForPendingFinalizers();
         //if (remeshCount>0)
         //    meshSem.Release(remeshCount);
     }

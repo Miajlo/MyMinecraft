@@ -1,4 +1,18 @@
 ﻿namespace MyMinecraft.Models;
+
+public struct Collision {
+    public bool CollidedX, CollidedY, CollidedZ;
+
+    public Collision(bool x, bool y, bool z) {
+        CollidedX = x;
+        CollidedY = y;
+        CollidedZ = z;
+    }
+
+    public bool Any() => CollidedX || CollidedY || CollidedZ;
+}
+
+
 public struct AABB {
     public Vector3 Min { get; }
     public Vector3 Max { get; }

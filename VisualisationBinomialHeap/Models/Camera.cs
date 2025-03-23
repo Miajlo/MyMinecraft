@@ -75,22 +75,59 @@ public class Camera {
 
     public List<ServerPacket> InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
         List<ServerPacket> packetsToSend = [];
+        Vector3 newPosition = position; // ✅ Copy position
+
         if (input.IsKeyDown(Keys.W))
-            WPressedHandle(e);
-        //position = position + front * Speed * (float)e.Time;
+            newPosition += front * gameRules.movementSpeed * (float)e.Time;
+
         if (input.IsKeyDown(Keys.S))
-            SPressedHandle(e);
-            //position -= front * Speed * (float)e.Time;
+            newPosition -= front * gameRules.movementSpeed * (float)e.Time;
+
         if (input.IsKeyDown(Keys.A))
-            APressedHandle(e);
-        //position -= right * Speed * (float)e.Time;
+            newPosition -= right * gameRules.movementSpeed * (float)e.Time;
+
         if (input.IsKeyDown(Keys.D))
-            DPressedHandle(e);
-            //position += right * Speed * (float)e.Time;
+            newPosition += right * gameRules.movementSpeed * (float)e.Time;
+
         if (input.IsKeyDown(Keys.Space))
-            SpacePressedHandle(e);
+            newPosition += new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
+
         if (input.IsKeyDown(Keys.LeftShift))
-            ShiftPressedHandle(e);
+            newPosition -= new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
+
+        Vector3 finalPosition = position;
+        AABB newHitbox;
+
+        // Check X movement first
+        newHitbox = GetPlayerHitbox(new(newPosition.X, position.Y, position.Z));
+        if (!CheckForCollisions(newHitbox).CollidedX)
+            finalPosition.X = newPosition.X;
+        else
+            newPosition.X = finalPosition.X; // Revert X movement if colliding
+
+        // Check Y movement (gravity & jumping)
+        newHitbox = GetPlayerHitbox(new(finalPosition.X, newPosition.Y, position.Z));
+        if (!CheckForCollisions(newHitbox).CollidedY)
+            finalPosition.Y = newPosition.Y;
+        else
+            newPosition.Y = finalPosition.Y; // Revert Y movement if colliding
+
+        // Check Z movement
+        newHitbox = GetPlayerHitbox(new(finalPosition.X, finalPosition.Y, newPosition.Z));
+        if (!CheckForCollisions(newHitbox).CollidedZ)
+            finalPosition.Z = newPosition.Z;
+        else
+            newPosition.Z = finalPosition.Z; // Revert Z movement if colliding
+
+        // Final check: Ensure player is not fully inside a block
+        newHitbox = GetPlayerHitbox(finalPosition);
+        if (CheckForCollisions(newHitbox).Any()) {
+            finalPosition = position; // Fully blocked, revert to original position
+        }
+
+        // Apply movement
+        position = finalPosition;
+
 
         if (input.IsKeyDown(Keys.Escape))
             window.Close();
@@ -163,121 +200,56 @@ public class Camera {
         }
     }
 
-    private void DPressedHandle(FrameEventArgs e) {
-        Vector3 desiredPositon = position + right * gameRules.movementSpeed * (float)e.Time;
-        Vector3 nextPos = position + (Math.Sign(right.X) * 1f, 0, 0);
-
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0,-1f,0)) )
-            position.X = (desiredPositon).X;
-
-        nextPos = position + (0, 1f, Math.Sign(right.Z) * 1f);
-
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
-            position.Z = desiredPositon.Z;
-
-        if (!CheckForCollisions(nextPos + (0, 1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)))
-            position.Y = desiredPositon.Y;
-    }
-
-    private void APressedHandle(FrameEventArgs e) {
-        Vector3 desiredPositon = position - right * gameRules.movementSpeed * (float)e.Time;
-        Vector3 nextPos = position + (Math.Sign(-right.X) * 1f, 0, 0);
-
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
-            position.X = (desiredPositon).X;
-
-        nextPos = position + (0, 0, Math.Sign(-right.Z) * 1f);
-
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
-            position.Z = desiredPositon.Z;
-
-        if (!CheckForCollisions(nextPos + (0, 1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)))
-            position.Y = desiredPositon.Y;
-    }
-
-    private void SPressedHandle(FrameEventArgs e) {
-        Vector3 desiredPositon = position - front * gameRules.movementSpeed * (float)e.Time;
-        Vector3 nextPos = position + (Math.Sign(front.X) * 1f, 0, 0);
-
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
-            position.X = (desiredPositon).X;
-
-        nextPos = position + (0, 0, Math.Sign(front.Z) * 1f);
-
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)))
-            position.Z = desiredPositon.Z;
-
-        if (!CheckForCollisions(nextPos + (0, 1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)))
-            position.Y = desiredPositon.Y;
-    }
-
-    private void SpacePressedHandle(FrameEventArgs e) {
-        //position.Y += Speed * (float)e.Time;
-
-        Vector3 nextPos = position + (0, 2.2f, 0);
-        if (!CheckForCollisions(nextPos))
-            position += (0, gameRules.movementSpeed* (float)e.Time, 0);
-    }
-
-    private void ShiftPressedHandle(FrameEventArgs e) {
-        Vector3 nextPos = position + (0, -2f, 0);
-        if (!CheckForCollisions(nextPos))
-            position += (0, -gameRules.movementSpeed * (float)e.Time, 0);
-
-    }
-
-    private void WPressedHandle(FrameEventArgs e) {
-        Vector3 desiredPositon = position + front * gameRules.movementSpeed * (float)e.Time;
-        Vector3 nextPos = position + (Math.Sign(front.X) * 1f, 0, 0);
-
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0, -1f, 0)) && !CheckForCollisions(nextPos + (0, 1.8f, 0)))
-            position.X = (desiredPositon).X;
-
-        nextPos = position + (0, 0, Math.Sign(front.Z) * 1f);
-
-        if (!CheckForCollisions(nextPos) && !CheckForCollisions(nextPos + (0,-1f,0)))
-            position.Z = desiredPositon.Z;
-
-        if (!CheckForCollisions(nextPos + (0,1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1.8f, 0)) && !CheckForCollisions(nextPos + (0, -1f, 0)))
-            position.Y = desiredPositon.Y;
-    }
-    //position = nextPos + (Math.Sign(position.X) * 0.5f, 0 , 0);
-    private bool CheckForCollisions(Vector3 nextPosition) {
+    private Collision CheckForCollisions(AABB playerAABB) {
         if (!gameRules.doCollisionChecks)
-            return false;
-        if (nextPosition.Y > Chunk.HEIGHT - 1 || (int)nextPosition.Y < 2)
-            return false;
+            return new();
 
-        Chunk_r? forChekin = new();
-
-        Vector3i chunkPos = GetChunkPos(nextPosition);
-        Chunk.ConvertToWorldCoords(ref chunkPos);
-
-        Vector3 blockPos = Chunk.ConvertToChunkBlockCoord(nextPosition);
+        if (playerAABB.Max.Y > Chunk.HEIGHT - 1 || playerAABB.Min.Y < 2)
+            return new Collision(false, false, false);
 
         var world = GetWorld();
-
         if (world == null) {
             Console.WriteLine("Camera.CheckForCollision: world was null");
-            return false;
-        }
-        if (!world!.GetChunk((Vector3i)chunkPos, out forChekin)) {
-            Console.WriteLine($"Specified chunk not yer generated, ID: {chunkPos}");
-            return false;
+            return new Collision(false, false, false);
         }
 
-        if (!world!.IsLoadedChunk(forChekin.position)) {
-            Console.WriteLine($"Current chunk not loaded, ID: {chunkPos}");
-            return false;
+        bool collidedX = false, collidedY = false, collidedZ = false;
+
+        for (int x = (int)Math.Floor(playerAABB.Min.X); x <= (int)Math.Floor(playerAABB.Max.X); x++) {
+            for (int y = (int)Math.Floor(playerAABB.Min.Y); y <= (int)Math.Floor(playerAABB.Max.Y); y++) {
+                for (int z = (int)Math.Floor(playerAABB.Min.Z); z <= (int)Math.Floor(playerAABB.Max.Z); z++) {
+                    Vector3 blockPos = new Vector3(x, y, z);
+                    Vector3i chunkPos = (Vector3i)Chunk_r.ConvertToChunkCoords(blockPos);
+                    Vector3 localBlockPos = Chunk_r.ConvertToChunkBlockCoord(blockPos);
+
+                    if (!world.GetChunk(chunkPos, out var chunk))
+                        continue;
+
+                    if (!world.IsLoadedChunk(chunk.position))
+                        continue;
+
+                    if (chunk.GetBlockAt(localBlockPos) != BlockType.AIR) {
+                        // Block hitbox (AABB for the block)
+                        AABB blockAABB = new AABB(blockPos, blockPos + Vector3.One);
+
+                        if (playerAABB.Intersects(blockAABB)) {
+                            if (playerAABB.Max.X > blockAABB.Min.X && playerAABB.Min.X < blockAABB.Max.X)
+                                collidedX = true;
+
+                            if (playerAABB.Max.Y > blockAABB.Min.Y && playerAABB.Min.Y < blockAABB.Max.Y)
+                                collidedY = true;
+
+                            if (playerAABB.Max.Z > blockAABB.Min.Z && playerAABB.Min.Z < blockAABB.Max.Z)
+                                collidedZ = true;
+                        }
+                    }
+                }
+            }
         }
-        //Console.WriteLine($"Checking in chunk: {chunkID}");
-        //Console.WriteLine($"Checking block: {x}, {0}, {z}");
 
-        if (forChekin.GetBlockAt(blockPos) != BlockType.AIR)
-            return true;
-
-        return false;
+        return new Collision(collidedX, collidedY, collidedZ);
     }
+
 
     public World_r? GetWorld() {
         if (worldRef.TryGetTarget(out var world))
@@ -295,8 +267,16 @@ public class Camera {
 
         Console.WriteLine($"Position: [ {position.X}, {position.Y}, {position.Z} ]");
         f3Pressed = true;
-        string chunkID = GetChunkID(position);
+        var chunkID = Chunk_r.ConvertToChunkCoords(position);
         Console.WriteLine($"Current chunk: [ {chunkID} ]");
+        var world = GetWorld();
+
+        if (world == null)
+            return;
+
+        //var collision = CheckForCollisions(GetPlayerHitbox(position));
+
+        //Console.WriteLine($"Collision [x,y,z]: [{collision.CollidedX}, {collision.CollidedY}, {collision.CollidedZ}");
     }
 
     public static Vector3i GetChunkPos(Vector3 pos) {
@@ -315,6 +295,19 @@ public class Camera {
         posY = 0;
         posZ = (int)((pos.Z -  pos.Z % 16) / 16 + 1 * Math.Sign(pos.Z));
         return $"{posX},{posY},{posZ}";
+    }
+
+    public AABB GetPlayerHitbox(Vector3 eyePos) {
+        float minX = eyePos.X - GameConfig.playerWidth / 2;
+        float maxX = eyePos.X + GameConfig.playerWidth / 2;
+
+        float minY = eyePos.Y - GameConfig.playerEyeHeight; // Bottom of hitbox (feet)
+        float maxY = eyePos.Y + GameConfig.playerTopHeight; // Top of hitbox (head)
+
+        float minZ = eyePos.Z - GameConfig.playerDepth / 2;
+        float maxZ = eyePos.Z + GameConfig.playerDepth / 2;
+
+        return new AABB(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
     }
 
     public List<ServerPacket> Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {

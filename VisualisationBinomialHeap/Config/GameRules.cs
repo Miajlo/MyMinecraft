@@ -8,6 +8,6 @@ public struct GameRules {
         generateChunks = true;
         doCollisionChecks = false;
         showChunkBorders = false;
-        movementSpeed = 30.0f;
+        movementSpeed = 30f;
     }
 }

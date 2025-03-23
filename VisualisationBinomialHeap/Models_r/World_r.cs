@@ -69,6 +69,14 @@ public  class World_r {
     internal void AddTreesToLoadedChunks() {
         throw new NotImplementedException();
     }
+
+    public bool IsSolidBlock(Vector3 blockPosX) {
+        Vector3i blockPos = Chunk_r.ConvertToChunkBlockCoord(blockPosX);
+        Vector3 chunkPos = Chunk_r.ConvertToChunkCoords(blockPosX);
+        BlockType block = GetBlockAt(chunkPos, blockPosX);
+
+        return block != BlockType.AIR;
+    }
     #endregion
 
 }
