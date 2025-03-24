@@ -8,4 +8,5 @@ public class GameConfig {
     public const float playerTopHeight = 0.1f;
     public const float playerWidth = 0.5f;
     public const float playerDepth = 0.5f;
+    public const float terminalVelocity = 78f;
 }

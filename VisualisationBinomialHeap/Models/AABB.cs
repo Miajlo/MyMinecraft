@@ -12,12 +12,17 @@ public struct Collision {
     public bool Any() => CollidedX || CollidedY || CollidedZ;
 }
 
+public enum PlayerStates {
+    ON_GROUND = 0,
+    IN_AIR = 1
+}
+
 
 public struct AABB {
-    public Vector3 Min { get; }
-    public Vector3 Max { get; }
+    public Vector3d Min { get; }
+    public Vector3d Max { get; }
 
-    public AABB(Vector3 min, Vector3 max) {
+    public AABB(Vector3d min, Vector3d max) {
         Min = min;
         Max = max;
     }

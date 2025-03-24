@@ -23,6 +23,8 @@ public class Camera {
 
     private bool isFirstMove = true;
     public Vector2 lastPosition;
+    public PlayerStates playerState;
+    public float gravitalVelocity = 0;
 
     WeakReference<World_r> worldRef;
     Server_r server;
@@ -38,6 +40,7 @@ public class Camera {
         worldRef = worldd;
         selectedBlock = BlockType.DIRT;
         this.server = server;
+        playerState = PlayerStates.IN_AIR;
     }
     public Matrix4 GetViewMatrix() {
         return Matrix4.LookAt(position, position + front, up);
@@ -75,25 +78,30 @@ public class Camera {
 
     public List<ServerPacket> InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
         List<ServerPacket> packetsToSend = [];
-        Vector3 newPosition = position; // ✅ Copy position
+        Vector3 newPosition = position;
 
-        if (input.IsKeyDown(Keys.W))
-            newPosition += front * gameRules.movementSpeed * (float)e.Time;
+        //if (input.IsKeyDown(Keys.W))
+        //    newPosition += front * gameRules.movementSpeed * (float)e.Time;
 
-        if (input.IsKeyDown(Keys.S))
-            newPosition -= front * gameRules.movementSpeed * (float)e.Time;
+        //if (input.IsKeyDown(Keys.S))
+        //    newPosition -= front * gameRules.movementSpeed * (float)e.Time;
 
-        if (input.IsKeyDown(Keys.A))
-            newPosition -= right * gameRules.movementSpeed * (float)e.Time;
+        //if (input.IsKeyDown(Keys.A))
+        //    newPosition -= right * gameRules.movementSpeed * (float)e.Time;
 
-        if (input.IsKeyDown(Keys.D))
-            newPosition += right * gameRules.movementSpeed * (float)e.Time;
+        //if (input.IsKeyDown(Keys.D))
+        //    newPosition += right * gameRules.movementSpeed * (float)e.Time;
 
-        if (input.IsKeyDown(Keys.Space))
-            newPosition += new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
+        //if (input.IsKeyDown(Keys.Space))
+        //    newPosition += new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
 
-        if (input.IsKeyDown(Keys.LeftShift))
-            newPosition -= new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
+        //if (input.IsKeyDown(Keys.LeftShift))
+        //    newPosition -= new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
+
+        newPosition = gameRules.physics 
+                    ? HandleMovement(input, e)
+                    : HandleMovementNoPhysics(input,e);
+
 
         Vector3 finalPosition = position;
         AABB newHitbox;
@@ -105,12 +113,21 @@ public class Camera {
         else
             newPosition.X = finalPosition.X; // Revert X movement if colliding
 
+        //if (gameRules.physics && playerState == PlayerStates.IN_AIR) {
+        //    gravitalVelocity += gameRules.gravity;
+        //    if (gravitalVelocity > GameConfig.terminalVelocity)
+        //        gravitalVelocity = GameConfig.terminalVelocity;
+        //    newPosition.Y -= gravitalVelocity * (float)e.Time;
+        //}
+
         // Check Y movement (gravity & jumping)
         newHitbox = GetPlayerHitbox(new(finalPosition.X, newPosition.Y, position.Z));
         if (!CheckForCollisions(newHitbox).CollidedY)
             finalPosition.Y = newPosition.Y;
-        else
+        else {
             newPosition.Y = finalPosition.Y; // Revert Y movement if colliding
+            gravitalVelocity = 0;
+        }
 
         // Check Z movement
         newHitbox = GetPlayerHitbox(new(finalPosition.X, finalPosition.Y, newPosition.Z));
@@ -125,6 +142,16 @@ public class Camera {
             finalPosition = position; // Fully blocked, revert to original position
         }
 
+        //if (finalPosition.Y == position.Y && gameRules.physics) {
+        //    playerState = PlayerStates.ON_GROUND;
+        //    gravitalVelocity = 0;
+        //    //Console.WriteLine($"Player state: [{playerState}]");
+        //}
+        //if (finalPosition.Y != position.Y && playerState == PlayerStates.ON_GROUND) {
+        //    playerState = PlayerStates.IN_AIR;
+        //    //Console.WriteLine($"Player state: [{playerState}]");
+        //}
+
         // Apply movement
         position = finalPosition;
 
@@ -137,6 +164,11 @@ public class Camera {
         if (input.IsKeyPressed(Keys.F3))
             PrintCurrentPosition();
 
+
+        if(input.IsKeyPressed(Keys.F)) {
+            gameRules.physics = !gameRules.physics;
+            Console.WriteLine($"Physics set to: {gameRules.physics}");
+        }
 
         if (input.IsKeyPressed(Keys.N) ) {
             gameRules.doCollisionChecks = !gameRules.doCollisionChecks;
@@ -199,6 +231,133 @@ public class Camera {
             }
         }
     }
+
+    private Vector3 HandleMovementNoPhysics(KeyboardState input, FrameEventArgs e) {
+        Vector3 newPosition = position;
+        if (input.IsKeyDown(Keys.W))
+            newPosition += front * gameRules.movementSpeed * (float)e.Time;
+
+        if (input.IsKeyDown(Keys.S))
+            newPosition -= front * gameRules.movementSpeed * (float)e.Time;
+
+        if (input.IsKeyDown(Keys.A))
+            newPosition -= right * gameRules.movementSpeed * (float)e.Time;
+
+        if (input.IsKeyDown(Keys.D))
+            newPosition += right * gameRules.movementSpeed * (float)e.Time;
+
+        if (input.IsKeyDown(Keys.Space))
+            newPosition += new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
+
+        if (input.IsKeyDown(Keys.LeftShift))
+            newPosition -= new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
+
+        return newPosition;
+    }
+
+    private Vector3 HandleMovement(KeyboardState input, FrameEventArgs e) {
+        if (!gameRules.physics)
+            return position; // No movement if physics is disabled
+
+        Vector3 newPosition = position;
+        float deltaTime = (float)e.Time;
+
+        // Movement direction
+        Vector3 moveDirection = Vector3.Zero;
+
+        if (input.IsKeyDown(Keys.W))
+            moveDirection += (front - new Vector3(0, front.Y, 0));
+        if (input.IsKeyDown(Keys.S))
+            moveDirection -= (front - new Vector3(0, front.Y, 0));
+
+        if (input.IsKeyDown(Keys.A))
+            moveDirection -= (right - new Vector3(0, right.Y, 0));
+        if (input.IsKeyDown(Keys.D))
+            moveDirection += (right - new Vector3(0, right.Y, 0));
+
+        if (moveDirection.LengthSquared > 0)
+            moveDirection = Vector3.Normalize(moveDirection);
+
+        // Apply gravity
+        gravitalVelocity -= gameRules.gravity * deltaTime;
+        gravitalVelocity = MathF.Max(gravitalVelocity, -GameConfig.terminalVelocity); // Clamp velocity
+
+        // Jumping logic
+        if (input.IsKeyDown(Keys.Space) && playerState == PlayerStates.ON_GROUND) {
+            gravitalVelocity = gameRules.jumpForce;
+            playerState = PlayerStates.IN_AIR;
+        }
+
+        // **Apply vertical movement first**
+        newPosition.Y += gravitalVelocity * deltaTime;
+
+        // **Check for ceiling collision (head hit)**
+        AABB ceilingHitbox = GetPlayerHitbox(new Vector3(newPosition.X, newPosition.Y + 0.1f, newPosition.Z));
+        if (CheckForCollisions(ceilingHitbox).Any()) {
+            gravitalVelocity = 0;
+            newPosition.Y = position.Y; // Revert to previous Y position
+        }
+
+        // **Ground Check BEFORE movement**
+        bool onGround = CheckForCollisions(GetPlayerHitbox(new Vector3(newPosition.X, newPosition.Y - 0.1f, newPosition.Z))).Any();
+        if (onGround) {
+            playerState = PlayerStates.ON_GROUND;
+            gravitalVelocity = 0;
+        }
+        else {
+            playerState = PlayerStates.IN_AIR;
+        }
+
+        // **Apply horizontal movement AFTER gravity adjustments**
+        float airControlFactor = (playerState == PlayerStates.IN_AIR) ? 0.6f : 1.0f;
+        Vector3 finalMove = moveDirection * gameRules.movementSpeed * airControlFactor * deltaTime;
+
+        // **Check horizontal collisions separately**
+        Vector3 moveX = new Vector3(finalMove.X, 0, 0);
+        AABB hitboxX = GetPlayerHitbox(newPosition + moveX);
+        if (CheckForCollisions(hitboxX).Any()) {
+            // **Step up logic for X**
+            AABB stepUpHitbox = GetPlayerHitbox(newPosition + moveX + new Vector3(0, 0.6f, 0)); // Check for step height
+            if (!CheckForCollisions(stepUpHitbox).Any()) {
+                float stepSpeed = 3.0f * deltaTime; // Smooth step-up speed
+                newPosition.Y += MathF.Min(0.3f, stepSpeed); // Move up gradually
+                
+            }
+            else {
+                moveX = Vector3.Zero; // Blocked movement
+            }
+        }
+
+        Vector3 moveZ = new Vector3(0, 0, finalMove.Z);
+        AABB hitboxZ = GetPlayerHitbox(newPosition + moveZ);
+        if (CheckForCollisions(hitboxZ).Any()) {
+            // **Step up logic for Z**
+            AABB stepUpHitbox = GetPlayerHitbox(newPosition + moveZ + new Vector3(0, 0.6f, 0));
+            if (!CheckForCollisions(stepUpHitbox).Any()) {
+                float stepSpeed = 3.0f * deltaTime; // Smooth step-up speed
+                newPosition.Y += MathF.Min(0.3f, stepSpeed); // Move up gradually
+                
+            }
+            else {
+                moveZ = Vector3.Zero;
+            }
+        }
+
+        // **Apply movement only in the allowed directions**
+        newPosition += moveX + moveZ;
+
+        // **Final Ground Check (for stepping up)**
+        if (CheckForCollisions(GetPlayerHitbox(new Vector3(newPosition.X, newPosition.Y - 0.1f, newPosition.Z))).Any()) {
+            playerState = PlayerStates.ON_GROUND;
+            gravitalVelocity = 0;
+        }
+
+        return newPosition;
+    }
+
+
+
+
 
     private Collision CheckForCollisions(AABB playerAABB) {
         if (!gameRules.doCollisionChecks)
@@ -274,6 +433,8 @@ public class Camera {
         if (world == null)
             return;
 
+        Console.WriteLine($"Gravity velocity: [{gravitalVelocity}]");
+        Console.WriteLine($"Player state: [{playerState}]");
         //var collision = CheckForCollisions(GetPlayerHitbox(position));
 
         //Console.WriteLine($"Collision [x,y,z]: [{collision.CollidedX}, {collision.CollidedY}, {collision.CollidedZ}");
