@@ -19,10 +19,10 @@ public enum PlayerStates {
 
 
 public struct AABB {
-    public Vector3d Min { get; }
-    public Vector3d Max { get; }
+    public Vector3 Min { get; }
+    public Vector3 Max { get; }
 
-    public AABB(Vector3d min, Vector3d max) {
+    public AABB(Vector3 min, Vector3 max) {
         Min = min;
         Max = max;
     }

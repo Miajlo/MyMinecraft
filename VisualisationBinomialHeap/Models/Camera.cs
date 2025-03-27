@@ -25,6 +25,7 @@ public class Camera {
     public Vector2 lastPosition;
     public PlayerStates playerState;
     public float gravitalVelocity = 0;
+    public float upwardVelocity = 0;
 
     WeakReference<World_r> worldRef;
     Server_r server;
@@ -126,7 +127,7 @@ public class Camera {
             finalPosition.Y = newPosition.Y;
         else {
             newPosition.Y = finalPosition.Y; // Revert Y movement if colliding
-            gravitalVelocity = 0;
+            //gravitalVelocity = 0;
         }
 
         // Check Z movement
@@ -261,99 +262,85 @@ public class Camera {
 
         Vector3 newPosition = position;
         float deltaTime = (float)e.Time;
-
-        // Movement direction
+        // Movement direction (horizontal only)
         Vector3 moveDirection = Vector3.Zero;
 
         if (input.IsKeyDown(Keys.W))
             moveDirection += (front - new Vector3(0, front.Y, 0));
         if (input.IsKeyDown(Keys.S))
             moveDirection -= (front - new Vector3(0, front.Y, 0));
-
         if (input.IsKeyDown(Keys.A))
             moveDirection -= (right - new Vector3(0, right.Y, 0));
         if (input.IsKeyDown(Keys.D))
             moveDirection += (right - new Vector3(0, right.Y, 0));
+        if (playerState == PlayerStates.IN_AIR) {
+            gravitalVelocity += gameRules.gravity * deltaTime;
+            gravitalVelocity = MathF.Min(gravitalVelocity, gameRules.terminalVelocity);
+        }
+        if (input.IsKeyDown(Keys.Space) && playerState == PlayerStates.ON_GROUND) {
+            upwardVelocity = CalculateInitialJumpVelocity();
+            playerState = PlayerStates.IN_AIR;
+            Console.WriteLine("Jump pressed!");
+        }        
 
         if (moveDirection.LengthSquared > 0)
-            moveDirection = Vector3.Normalize(moveDirection);
+            moveDirection = Vector3.Normalize(moveDirection);       
 
-        // Apply gravity
-        gravitalVelocity -= gameRules.gravity * deltaTime;
-        gravitalVelocity = MathF.Max(gravitalVelocity, -GameConfig.terminalVelocity); // Clamp velocity
+        float newY = position.Y;
 
-        // Jumping logic
-        if (input.IsKeyDown(Keys.Space) && playerState == PlayerStates.ON_GROUND) {
-            gravitalVelocity = gameRules.jumpForce;
-            playerState = PlayerStates.IN_AIR;
-        }
+        newY += upwardVelocity*deltaTime - gravitalVelocity * deltaTime;
 
-        // **Apply vertical movement first**
-        newPosition.Y += gravitalVelocity * deltaTime;
+        newPosition.X += moveDirection.X * gameRules.movementSpeed * deltaTime;
+        if (CheckForCollisions(GetPlayerHitbox(newPosition)).Any())
+            newPosition.X = position.X;//revert
 
-        // **Check for ceiling collision (head hit)**
-        AABB ceilingHitbox = GetPlayerHitbox(new Vector3(newPosition.X, newPosition.Y + 0.1f, newPosition.Z));
-        if (CheckForCollisions(ceilingHitbox).Any()) {
+        newPosition.Z += moveDirection.Z * gameRules.movementSpeed * deltaTime;
+        if (CheckForCollisions(GetPlayerHitbox(newPosition)).Any())
+            newPosition.Z = position.Z;//revert
+
+        newPosition.Y = newY;
+        if (CheckForCollisions(GetPlayerHitbox(newPosition)).Any()) {
+            newPosition.Y = position.Y;//revert
             gravitalVelocity = 0;
-            newPosition.Y = position.Y; // Revert to previous Y position
-        }
-
-        // **Ground Check BEFORE movement**
-        bool onGround = CheckForCollisions(GetPlayerHitbox(new Vector3(newPosition.X, newPosition.Y - 0.1f, newPosition.Z))).Any();
-        if (onGround) {
+            upwardVelocity = 0;
             playerState = PlayerStates.ON_GROUND;
-            gravitalVelocity = 0;
-        }
-        else {
-            playerState = PlayerStates.IN_AIR;
         }
 
-        // **Apply horizontal movement AFTER gravity adjustments**
-        float airControlFactor = (playerState == PlayerStates.IN_AIR) ? 0.6f : 1.0f;
-        Vector3 finalMove = moveDirection * gameRules.movementSpeed * airControlFactor * deltaTime;
+        var world = GetWorld();
 
-        // **Check horizontal collisions separately**
-        Vector3 moveX = new Vector3(finalMove.X, 0, 0);
-        AABB hitboxX = GetPlayerHitbox(newPosition + moveX);
-        if (CheckForCollisions(hitboxX).Any()) {
-            // **Step up logic for X**
-            AABB stepUpHitbox = GetPlayerHitbox(newPosition + moveX + new Vector3(0, 0.6f, 0)); // Check for step height
-            if (!CheckForCollisions(stepUpHitbox).Any()) {
-                float stepSpeed = 3.0f * deltaTime; // Smooth step-up speed
-                newPosition.Y += MathF.Min(0.3f, stepSpeed); // Move up gradually
-                
+        if (world != null && playerState == PlayerStates.ON_GROUND) {
+            var hitbox = GetPlayerHitbox(newPosition);
+            bool fullyAirborne = true; // Assume the player is airborne
+
+            var corners = new[] {
+                new Vector3(hitbox.Min.X, hitbox.Min.Y, hitbox.Min.Z), // Front-left corner
+                new Vector3(hitbox.Max.X, hitbox.Min.Y, hitbox.Min.Z), // Front-right corner
+                new Vector3(hitbox.Min.X, hitbox.Min.Y, hitbox.Max.Z), // Back-left corner
+                new Vector3(hitbox.Max.X, hitbox.Min.Y, hitbox.Max.Z)  // Back-right corner
+            };
+
+            foreach (var corner in corners) {
+                var checkPos = new Vector3(corner.X, corner.Y - 1, corner.Z);
+                var chunkPos = Chunk_r.ConvertToChunkCoords(checkPos);
+                var blockPos = Chunk_r.ConvertToChunkBlockCoord(checkPos);
+
+                var block = world.GetBlockAt(chunkPos, blockPos);
+                if (block != BlockType.AIR) {
+                    fullyAirborne = false; 
+                    break; 
+                }
             }
-            else {
-                moveX = Vector3.Zero; // Blocked movement
-            }
+            if (fullyAirborne) 
+                playerState = PlayerStates.IN_AIR;
+            
         }
 
-        Vector3 moveZ = new Vector3(0, 0, finalMove.Z);
-        AABB hitboxZ = GetPlayerHitbox(newPosition + moveZ);
-        if (CheckForCollisions(hitboxZ).Any()) {
-            // **Step up logic for Z**
-            AABB stepUpHitbox = GetPlayerHitbox(newPosition + moveZ + new Vector3(0, 0.6f, 0));
-            if (!CheckForCollisions(stepUpHitbox).Any()) {
-                float stepSpeed = 3.0f * deltaTime; // Smooth step-up speed
-                newPosition.Y += MathF.Min(0.3f, stepSpeed); // Move up gradually
-                
-            }
-            else {
-                moveZ = Vector3.Zero;
-            }
-        }
-
-        // **Apply movement only in the allowed directions**
-        newPosition += moveX + moveZ;
-
-        // **Final Ground Check (for stepping up)**
-        if (CheckForCollisions(GetPlayerHitbox(new Vector3(newPosition.X, newPosition.Y - 0.1f, newPosition.Z))).Any()) {
-            playerState = PlayerStates.ON_GROUND;
-            gravitalVelocity = 0;
-        }
+        if (playerState == PlayerStates.ON_GROUND)
+            newPosition.Y = MathF.Floor(newPosition.Y)+0.7f;
 
         return newPosition;
     }
+
 
 
 
@@ -435,6 +422,8 @@ public class Camera {
 
         Console.WriteLine($"Gravity velocity: [{gravitalVelocity}]");
         Console.WriteLine($"Player state: [{playerState}]");
+        Console.WriteLine($"Initial jump velocity: [{CalculateInitialJumpVelocity()}]");
+        Console.WriteLine($"Terminal velocity: [{gameRules.terminalVelocity}]");
         //var collision = CheckForCollisions(GetPlayerHitbox(position));
 
         //Console.WriteLine($"Collision [x,y,z]: [{collision.CollidedX}, {collision.CollidedY}, {collision.CollidedZ}");
@@ -449,7 +438,7 @@ public class Camera {
         return new(posX, posY, posZ);
     }
 
-        public static string GetChunkID(Vector3 pos) {
+    public static string GetChunkID(Vector3 pos) {
         int posX, posY, posZ;
 
         posX = (int)((pos.X -  pos.X % 16) / 16 + 1 * Math.Sign(pos.X));
@@ -470,6 +459,12 @@ public class Camera {
 
         return new AABB(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
     }
+
+    public float CalculateInitialJumpVelocity() {
+        return MathF.Sqrt(2 * gameRules.gravity * gameRules.jumpHeight);
+    }
+
+
 
     public List<ServerPacket> Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
         return InputController(input, mouse, e, window);
