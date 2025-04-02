@@ -276,6 +276,9 @@ public class Camera {
         if (playerState == PlayerStates.IN_AIR) {
             gravitalVelocity += gameRules.gravity * deltaTime;
             gravitalVelocity = MathF.Min(gravitalVelocity, gameRules.terminalVelocity);
+            if (gravitalVelocity == 0)
+                playerState = PlayerStates.ON_GROUND;
+
         }
         if (input.IsKeyDown(Keys.Space) && playerState == PlayerStates.ON_GROUND) {
             upwardVelocity = CalculateInitialJumpVelocity();
@@ -304,19 +307,23 @@ public class Camera {
             gravitalVelocity = 0;
             upwardVelocity = 0;
             playerState = PlayerStates.ON_GROUND;
-        }
+        }        
 
         var world = GetWorld();
+
+        if (playerState == PlayerStates.IN_AIR && gravitalVelocity == 0 && upwardVelocity == 0)
+            playerState = PlayerStates.ON_GROUND;
 
         if (world != null && playerState == PlayerStates.ON_GROUND) {
             var hitbox = GetPlayerHitbox(newPosition);
             bool fullyAirborne = true; // Assume the player is airborne
-
+            //Console.WriteLine($"FeetY:{hitbox.Min.Y}, Eye height:{position.Y}");
+            float minY = MathF.Floor(hitbox.Min.Y)+0.1f;
             var corners = new[] {
-                new Vector3(hitbox.Min.X, hitbox.Min.Y, hitbox.Min.Z), // Front-left corner
-                new Vector3(hitbox.Max.X, hitbox.Min.Y, hitbox.Min.Z), // Front-right corner
-                new Vector3(hitbox.Min.X, hitbox.Min.Y, hitbox.Max.Z), // Back-left corner
-                new Vector3(hitbox.Max.X, hitbox.Min.Y, hitbox.Max.Z)  // Back-right corner
+                new Vector3(hitbox.Min.X, minY, hitbox.Min.Z), // Front-left corner
+                new Vector3(hitbox.Max.X, minY, hitbox.Min.Z), // Front-right corner
+                new Vector3(hitbox.Min.X, minY, hitbox.Max.Z), // Back-left corner
+                new Vector3(hitbox.Max.X, minY, hitbox.Max.Z)  // Back-right corner
             };
 
             foreach (var corner in corners) {
@@ -411,7 +418,8 @@ public class Camera {
         posY = 0;
         posZ = (int)((position.Z -  position.Z % 16) / 16 + 1 * Math.Sign(position.Z));
 
-        Console.WriteLine($"Position: [ {position.X}, {position.Y}, {position.Z} ]");
+        Console.WriteLine($"Position eye: [ {position.X}, {position.Y}, {position.Z} ]");
+        Console.WriteLine($"Position feet: [ {position.X}, {position.Y-GameConfig.playerEyeHeight}, {position.Z} ]");
         f3Pressed = true;
         var chunkID = Chunk_r.ConvertToChunkCoords(position);
         Console.WriteLine($"Current chunk: [ {chunkID} ]");
@@ -424,6 +432,14 @@ public class Camera {
         Console.WriteLine($"Player state: [{playerState}]");
         Console.WriteLine($"Initial jump velocity: [{CalculateInitialJumpVelocity()}]");
         Console.WriteLine($"Terminal velocity: [{gameRules.terminalVelocity}]");
+
+        var blockPos = Chunk_r.ConvertToChunkBlockCoord(position);
+
+        blockPos.Y-=2;
+
+        var block = world.GetBlockAt(chunkID, blockPos);
+
+        Console.WriteLine($"Standing on block: {block}, block position: {blockPos}");
         //var collision = CheckForCollisions(GetPlayerHitbox(position));
 
         //Console.WriteLine($"Collision [x,y,z]: [{collision.CollidedX}, {collision.CollidedY}, {collision.CollidedZ}");

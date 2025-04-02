@@ -7,7 +7,7 @@ public class Chunk_r {
 
     #region CHUNK_DATA
     public Vector3i position;
-    public BlockType[,,] chunkBlocks;
+    public Block_r[,,] chunkBlocks;
     public short[,] heightMap;
     #endregion
 
@@ -46,7 +46,7 @@ public class Chunk_r {
         ShouldClearData = false;
         UsedForStructGen = false;
 
-        chunkBlocks = new BlockType[SIZE, HEIGHT, SIZE];
+        chunkBlocks = new Block_r[SIZE, HEIGHT, SIZE];
         heightMap = new short[SIZE, SIZE];
 
         chunkUVs = [];
@@ -78,8 +78,8 @@ public class Chunk_r {
         for (int x = 0; x < SIZE; ++x) {
             for (int z = 0; z < SIZE; ++z) {
                 for (int y = 0; y < HEIGHT; ++y) { 
-                    chunkBlocks[x, y, z] = chunkBlocks[x,y,z] == BlockType.AIR ?
-                                           GetBlockType(x, y, z):chunkBlocks[x,y,z];
+                    chunkBlocks[x, y, z].type = chunkBlocks[x,y,z].type == BlockType.AIR ?
+                                           GetBlockType(x, y, z):chunkBlocks[x,y,z].type;
                 }
             }
         }
@@ -170,7 +170,7 @@ public class Chunk_r {
 
                         continue; // for now ignore chunk borders
                     }
-                    if (chunkBlocks[sx+x, y+height, sz+z] == BlockType.AIR)
+                    if (chunkBlocks[sx+x, y+height, sz+z].type == BlockType.AIR)
                         SetBlockAt(setBlockPos, (BlockType)Tree.treeBlocks[y, x, z]);
                 }
             }
@@ -305,7 +305,7 @@ public class Chunk_r {
             return;
         }
         chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(chunkBlockPos);
-        chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z] = blockType;
+        chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].type = blockType;
     }
 
     public BlockType GetBlockAt(Vector3 chunkBlockPos) {
@@ -314,7 +314,7 @@ public class Chunk_r {
             throw new ArgumentException($"Invalid chunk block pos: {chunkBlockPos}, chunk:{position}");
         }
 
-        return chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z];
+        return chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].type;
     }
 
     public void SaveToFile() {
@@ -343,19 +343,22 @@ public class Chunk_r {
                chunkBlockPos.Z < 0 || chunkBlockPos.Z >= Chunk_r.SIZE;
     }
 
-    public static Vector3 ConvertToChunkCoords(Vector3 pos) {
+    public static Vector3 ConvertToChunkCoords(Vector3 pos) {        
         int posX, posY, posZ;
-        posX = (int)Math.Floor(pos.X / 16);
+        posX = (int)Math.Floor(pos.X / Chunk_r.SIZE);
         posY = 0;
-        posZ = (int)Math.Floor(pos.Z / 16);
+        posZ = (int)Math.Floor(pos.Z / Chunk_r.SIZE);
         return new Vector3(posX, posY, posZ)*Chunk_r.SIZE;
     }
 
     public static Vector3i ConvertToChunkBlockCoord(Vector3 pos) {
+        int chunkX = (int)Math.Floor(pos.X / Chunk_r.SIZE);
+        int chunkZ = (int)Math.Floor(pos.Z / Chunk_r.SIZE);
+
         return new Vector3i(
-            ModFloor((int)pos.X, Chunk_r.SIZE),
-            ModFloor((int)pos.Y, Chunk_r.HEIGHT),
-            ModFloor((int)pos.Z, Chunk_r.SIZE)
+            (int)Math.Floor(pos.X) - chunkX * Chunk_r.SIZE,
+            Math.Clamp((int)Math.Floor(pos.Y), 0, Chunk_r.HEIGHT - 1),
+            (int)Math.Floor(pos.Z) - chunkZ * Chunk_r.SIZE
         );
     }
 

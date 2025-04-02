@@ -54,7 +54,22 @@ public  class World_r {
         if (!loadedChunks.TryGetValue(chunkPos, out var chunk))
             return BlockType.AIR;
 
-        return chunk.chunkBlocks[(int)blockPos.X, (int)blockPos.Y, (int)blockPos.Z];
+        return chunk.chunkBlocks[(int)blockPos.X, (int)blockPos.Y, (int)blockPos.Z].type;
+    }
+    /// <summary>
+    /// Get the block at the specified global position
+    /// </summary>
+    /// <param name="blockPos"></param>
+    /// <returns>Block type at position, or AIR if chunk not loaded</returns>
+    public BlockType GetBlockAt(Vector3 blockPos) {
+        var chunkPos = Chunk_r.ConvertToChunkCoords(blockPos);
+        
+        if(!loadedChunks.TryGetValue(chunkPos, out var chunk))
+            return BlockType.AIR;
+
+        var chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(blockPos);
+
+        return GetBlockAt(chunkPos, chunkBlockPos);
     }
 
 

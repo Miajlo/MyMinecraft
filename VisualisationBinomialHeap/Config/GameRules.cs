@@ -1,5 +1,4 @@
-﻿
-namespace MyMinecraft.Config; 
+﻿namespace MyMinecraft.Config; 
 public struct GameRules {
     public bool generateChunks;
     public bool doCollisionChecks;
@@ -16,7 +15,7 @@ public struct GameRules {
         doCollisionChecks = false;
         showChunkBorders = false;
         movementSpeed = 10f;
-        gravity = 9.80527f;
+        gravity = 9.80527f; //Minecraft: 32.656
         physics = false;
         jumpHeight = 1.25f;
         weight = 100;
