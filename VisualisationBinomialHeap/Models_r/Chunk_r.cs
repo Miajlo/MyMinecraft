@@ -49,6 +49,8 @@ public class Chunk_r {
         chunkBlocks = new Block_r[SIZE, HEIGHT, SIZE];
         heightMap = new short[SIZE, SIZE];
 
+        InitializeBlocks();
+
         chunkUVs = [];
         chunkVert = [];
         chunkInd = [];
@@ -72,6 +74,16 @@ public class Chunk_r {
         Console.WriteLine($"Generated chunk: {position}");
 
         //return treeLeftovers;
+    }
+
+    private void InitializeBlocks() {
+        for (int x = 0; x < SIZE; x++) {
+            for (int y = 0; y < HEIGHT; y++) {
+                for (int z = 0; z < SIZE; z++) {
+                    chunkBlocks[x, y, z] = new();  // Custom initialization
+                }
+            }
+        }
     }
 
     private void GenChunkBlocks() {
@@ -282,7 +294,7 @@ public class Chunk_r {
     public void IntegrateFace(BlockType block, Faces face, Vector3 blockPos) {
         var faceData = Block.GetFaceData(face, blockPos);
         chunkVert.AddRange(faceData);
-        chunkUVs.AddRange(TextureData.GetUVs(block, face));
+        chunkUVs.AddRange(TextureData.GetUVs(block, face, Faces.TOP));
     }
 
     public void AddIndeces(uint indCount) {
@@ -306,6 +318,17 @@ public class Chunk_r {
         }
         chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(chunkBlockPos);
         chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].type = blockType;
+    }
+
+    public void PlaceBlockAt(Vector3 chunkBlockPos, BlockType blockType, Faces rotation) {
+        if (InvalidBlockCoords(chunkBlockPos)) {
+            Console.WriteLine($"Invalid block position to set: {chunkBlockPos}");
+            return;
+        }
+        chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(chunkBlockPos);
+        chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].type = blockType;
+        chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].rotation = rotation;
+
     }
 
     public BlockType GetBlockAt(Vector3 chunkBlockPos) {

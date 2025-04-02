@@ -51,7 +51,7 @@ public class Window : GameWindow {
         GL.CullFace(CullFaceMode.Back); // or Front, depending on which faces should be culled
         GL.DepthFunc(DepthFunction.Less); // or another appropriate depth function
 
-        camera = new(Width, Height, (1 , 300, 1), new WeakReference<World_r>(world), server);
+        camera = new(Width, Height, (1 , 70, 1), new WeakReference<World_r>(world), server);
         server = new Server_r(world, renderDistance);
         CursorState = CursorState.Grabbed;
         server.Start();

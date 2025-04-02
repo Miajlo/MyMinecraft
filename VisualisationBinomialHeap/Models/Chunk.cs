@@ -163,7 +163,7 @@ public class Chunk {
         //block.AddFace(face);
         var faceData = Block.GetFaceData(face, blockPos);
         chunkVert.AddRange(faceData);
-        chunkUVs.AddRange(TextureData.GetUVs(block, face));
+        chunkUVs.AddRange(TextureData.GetUVs(block, face, Faces.TOP));
     }
 
     public void AddInceces(uint indCount) {

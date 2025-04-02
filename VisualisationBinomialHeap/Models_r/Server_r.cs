@@ -237,7 +237,7 @@ public class Server_r {
     }
 
     public void UpdateQueues(Vector3i currChunkPos) {
-        Chunk.ConvertToWorldCoords(ref currChunkPos);
+        Chunk_r.ConvertToWorldCoords(ref currChunkPos);
        
 
         RemoveFarChunks(currChunkPos);
@@ -331,12 +331,14 @@ public class Server_r {
 
 
                         Console.WriteLine($"Hit block: {chunkBlockPos} {chunkPos}");
-                        chunk.SetBlockAt(prevBlockPos, packet.selectedBlock);
-                        chunk.Redraw = true;
-                        chunk.AddedFaces = false;
+                        
 
                         var faceHit = DetermineHitFace(chunkBlockPos+chunkPos, prevBlockPos+prevChunkPos);
                         Console.WriteLine($"Hit the face: {faceHit}");
+
+                        chunk.PlaceBlockAt(prevBlockPos, packet.selectedBlock, faceHit);
+                        chunk.Redraw = true;
+                        chunk.AddedFaces = false;
 
                         chunksToMesh.Enqueue(chunk);
 
@@ -486,7 +488,7 @@ public class Server_r {
         int remeshCount = 0;
         Vector3i checkPos = new(position.X+16, position.Y, position.Z);
         Chunk_r? neighbour;
-        if (chunkBlockPos.X == Chunk.SIZE-1 && world.GetChunk(checkPos, out neighbour)) {
+        if (chunkBlockPos.X == Chunk_r.SIZE-1 && world.GetChunk(checkPos, out neighbour)) {
             neighbour.Redraw = true;
             neighbour.AddedFaces = false;
             if (!chunksToMesh.Contains(neighbour))
@@ -502,7 +504,7 @@ public class Server_r {
             ++remeshCount;
         }
         checkPos = new(position.X, position.Y, position.Z+16);
-        if (chunkBlockPos.Z == Chunk.SIZE-1 && world.GetChunk(checkPos, out neighbour)) {
+        if (chunkBlockPos.Z == Chunk_r.SIZE-1 && world.GetChunk(checkPos, out neighbour)) {
             neighbour.Redraw = true;
             neighbour.AddedFaces = false;
             if (!chunksToMesh.Contains(neighbour))

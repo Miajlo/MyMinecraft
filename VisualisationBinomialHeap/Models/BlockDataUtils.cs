@@ -13,7 +13,7 @@ public enum BlockType : byte {
     MOSSY_COBBLESTONE
 }
 
-public enum Faces :byte {
+public enum Faces : byte {
     FRONT,
     BACK,
     LEFT,

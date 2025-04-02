@@ -357,7 +357,7 @@ public class Camera {
         if (!gameRules.doCollisionChecks)
             return new();
 
-        if (playerAABB.Max.Y > Chunk.HEIGHT - 1 || playerAABB.Min.Y < 2)
+        if (playerAABB.Max.Y > Chunk_r.HEIGHT - 1 || playerAABB.Min.Y < 2)
             return new Collision(false, false, false);
 
         var world = GetWorld();

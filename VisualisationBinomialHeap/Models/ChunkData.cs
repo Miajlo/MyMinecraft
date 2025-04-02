@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using MyMinecraft.Models_r;
+using System.Drawing;
 
 namespace MyMinecraft.Models; 
 public struct ChunkData {
@@ -7,8 +8,8 @@ public struct ChunkData {
     public ushort[,] heightMap;
 
     public ChunkData(Vector3 position) {
-        this.blocks = new BlockType[Chunk.SIZE, Chunk.HEIGHT, Chunk.SIZE];
+        this.blocks = new BlockType[Chunk_r.SIZE, Chunk_r.HEIGHT, Chunk_r.SIZE];
         this.position = position;
-        this.heightMap = new ushort[Chunk.SIZE, Chunk.SIZE];
+        this.heightMap = new ushort[Chunk_r.SIZE, Chunk_r.SIZE];
     }
 }
