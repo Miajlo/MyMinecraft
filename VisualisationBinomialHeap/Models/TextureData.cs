@@ -129,6 +129,12 @@ public readonly struct TextureData {
 
         var uvsToRotate = GetUVsNoRotation(face,topLeft);
 
+        if(rotation != Faces.TOP) {
+            (uvsToRotate[0], uvsToRotate[2]) = (uvsToRotate[2], uvsToRotate[0]);
+            (uvsToRotate[2], uvsToRotate[3]) = (uvsToRotate[3], uvsToRotate[2]);
+            (uvsToRotate[0], uvsToRotate[1]) = (uvsToRotate[1], uvsToRotate[0]);
+        }
+
         //if ((rotation == Faces.TOP || rotation == Faces.BOTTOM) || face == Faces.TOP || face == Faces.BOTTOM ) {
         //    // For TOP and BOTTOM faces, no change needed in UVs, they remain as is
         //    return uvsToRotate;
@@ -235,6 +241,10 @@ public readonly struct TextureData {
         return face;
     }
 
-
+    private static void Swap<T>(ref T item1, ref T item2) {        
+        var tmp = item1;
+        item1 = item2;
+        item2 = tmp;
+    }
 
 }

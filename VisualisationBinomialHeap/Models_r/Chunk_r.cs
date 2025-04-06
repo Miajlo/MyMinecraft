@@ -103,7 +103,7 @@ public class Chunk_r {
         fnl.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
         fnl.SetFrequency(0.01f);
 
-        fnl.SetFractalType(FastNoiseLite.FractalType.FBm);  // fBm (Fractional Brownian Motion)
+        fnl.SetFractalType(FastNoiseLite.FractalType.DomainWarpIndependent);  // fBm (Fractional Brownian Motion)
         fnl.SetFractalOctaves(4);      // Number of octaves
         fnl.SetFractalLacunarity(1.0f); // Frequency multiplier per octave
         fnl.SetFractalGain(0.25f);      // Amplitude multiplier per octave

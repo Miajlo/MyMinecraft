@@ -349,10 +349,6 @@ public class Camera {
     }
 
 
-
-
-
-
     private Collision CheckForCollisions(AABB playerAABB) {
         if (!gameRules.doCollisionChecks)
             return new();
