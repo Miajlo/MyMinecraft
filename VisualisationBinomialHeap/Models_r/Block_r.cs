@@ -9,4 +9,8 @@ public struct Block_r {
         lightLevel = 0;
         rotation = Faces.TOP;
     }
+
+    public Block_r(BlockType type): this() {
+        this.type = type;
+    }
 }

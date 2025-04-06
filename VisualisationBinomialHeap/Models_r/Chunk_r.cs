@@ -61,6 +61,7 @@ public class Chunk_r {
     public Chunk_r(Vector3i position) : this() {
         this.position = position;
         GenHeightMap();
+        //GenHeightmapSpline();
     }
     #endregion
 
@@ -119,13 +120,60 @@ public class Chunk_r {
 
         for (var x = 0; x < SIZE; ++x) {
             for (var z = 0; z < SIZE; ++z) {
-                float noiseValue = fnl.GetNoise(x + position.X, z + position.Z)*HEIGHT*0.5f + fnl2.GetNoise(x+position.X, z+position.Z)*HEIGHT*0.35f + HEIGHT/2;
+                float posX = position.X + x;
+                float posZ = position.Z + z;
+                float noiseValue = fnl.GetNoise(posX, posZ)*HEIGHT*0.5f + fnl2.GetNoise(posX, posZ)*HEIGHT*0.35f + HEIGHT/2;
                 heightMap[x, z] = (short)Math.Clamp((noiseValue + 1), 0, HEIGHT - 1);
             }
         }
     }
 
-    public Dictionary<Vector3i,List<CrossChunkData>> GenTrees() {
+    //public void GenHeightmapSpline() {
+    //    TerrainEvaluator tfe = new(HEIGHT);
+
+    //    FastNoiseLite erosion = new();
+    //    FastNoiseLite continent = new();
+    //    FastNoiseLite peakAndVally = new();
+    //    erosion.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
+    //    erosion.SetFrequency(10f);
+    //    erosion.SetFractalType(FastNoiseLite.FractalType.DomainWarpIndependent);
+    //    erosion.SetFractalOctaves(4);
+    //    erosion.SetFractalLacunarity(1.0f);
+    //    erosion.SetFractalGain(1.1f);
+
+    //    // Continentalness noise
+    //    continent.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
+    //    continent.SetFrequency(0.01f);
+    //    continent.SetFractalType(FastNoiseLite.FractalType.DomainWarpIndependent);
+    //    continent.SetFractalOctaves(8);
+    //    continent.SetFractalLacunarity(4f);
+    //    continent.SetFractalGain(10f);
+
+    //    // Peaks and valleys noise
+    //    peakAndVally.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
+    //    peakAndVally.SetFrequency(0.005f); // Add a base frequency
+    //    peakAndVally.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
+    //    peakAndVally.SetFractalOctaves(8);
+    //    peakAndVally.SetFractalLacunarity(10f);
+    //    peakAndVally.SetFractalGain(0.5f);
+
+    //    for (var x = 0; x < SIZE; ++x) {
+    //        for (var z = 0; z < SIZE; ++z) {
+    //            float posX = position.X + x;
+    //            float posZ = position.Z + z;
+    //            float erosionVal = erosion.GetNoise(posX, posZ);
+    //            float continentVal = continent.GetNoise(posX, posZ);
+    //            float peakAndValley = peakAndVally.GetNoise(posX, posZ);
+
+    //            float height = tfe.EvaluateHeight(erosionVal, continentVal, peakAndValley);
+
+    //            heightMap[x, z] = (short)Math.Min(height, HEIGHT - 1);
+    //        }
+    //    }
+
+    //}
+
+    public Dictionary<Vector3i,CrossChunkData> GenTrees() {
         FastNoiseLite treeNoise = new FastNoiseLite();
         treeNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2S);
         treeNoise.SetFrequency(0.5f);  // Slightly higher frequency for better spread
@@ -134,7 +182,7 @@ public class Chunk_r {
         treeNoise.SetFractalGain(0.0004f);
         treeNoise.SetSeed(98765);
 
-        Dictionary<Vector3i, List<CrossChunkData>> treeLeftovers = [];
+        Dictionary<Vector3i,CrossChunkData> treeLeftovers = [];
 
         for (int x = 0; x < SIZE; x++) {
             for (int z = 0; z < SIZE; z++) {
@@ -154,7 +202,7 @@ public class Chunk_r {
         return (x * 735761 + z * 902002) ^ 54321;
     }
 
-    private void PlaceTree(int sx, int sz, Dictionary<Vector3i, List<CrossChunkData>> dict) {      
+    private void PlaceTree(int sx, int sz, Dictionary<Vector3i, CrossChunkData> dict) {      
         int height = heightMap[sx, sz];
         sx-=3;
         sz-=3;
@@ -171,13 +219,13 @@ public class Chunk_r {
                         Vector3i chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(copySetBlockPos);
 
                         // Ensure the chunk entry exists
-                        if (!dict.TryGetValue(chunkPos, out var list)) {
-                            list = new List<CrossChunkData>();
-                            dict[chunkPos] = list;
+                        if (!dict.TryGetValue(chunkPos, out var data)) {
+                            data = new(); // or whatever type
+                            dict[chunkPos] = data;
                         }
 
-                        // Add the block data with corrected positions
-                        list.Add(new CrossChunkData((BlockType)Tree.treeBlocks[y, x, z], chunkBlockPos));
+                        data.TryAddBlock(chunkBlockPos, new Block_r((BlockType)Tree.treeBlocks[y, x, z]));
+
 
 
                         continue; // for now ignore chunk borders

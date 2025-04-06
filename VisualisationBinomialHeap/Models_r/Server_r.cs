@@ -30,7 +30,7 @@ public class Server_r {
     private ConcurrentQueue<Chunk_r> chunksToMesh;
     private ConcurrentDictionary<Vector3, Chunk_r> chunksToRender;
     private ConcurrentQueue<ServerPacket> packets;
-    private ConcurrentDictionary<Vector3i, List<CrossChunkData>> crossChunkData;
+    private ConcurrentDictionary<Vector3i, CrossChunkData> crossChunkData;
     #endregion
 
     #region DATA
@@ -84,11 +84,11 @@ public class Server_r {
 
             foreach (var chunk in chunksToAdd) {
                 if (this.crossChunkData.TryGetValue(chunk.position, out var blockData)) {
-                    foreach (var block in blockData) {
-                        chunk.SetBlockAt(block.blockPos, block.blockType);
+                    foreach (var block in blockData.crossChunkBlocks) {
+                        chunk.SetBlockAt(block.Key, block.Value.type);
                     }
                     // Remove data after applying it to avoid reapplying on reload
-                    
+                    crossChunkData.Remove(chunk.position, out _);
                 }
 
                 if (chunk.UsedForStructGen || !chunk.Generated) {
@@ -127,12 +127,14 @@ public class Server_r {
             world.AddLoadedChunk(toAddChunk);
 
             foreach (var pair in chunkCrossData) {
-                if (!this.crossChunkData.TryGetValue(pair.Key, out var list)) {
-                    list = new List<CrossChunkData>(); // Create new list if it doesn't exist
-                    this.crossChunkData[pair.Key] = list;
+                if (!this.crossChunkData.TryGetValue(pair.Key, out var blockData)) {
+                    blockData = new(); // Create new CrossChunkData if it doesn't exist
+                    this.crossChunkData[pair.Key] = blockData;
                 }
-                list.AddRange(pair.Value); // Add tree blocks
+
+                blockData.AddAllBlocks(pair.Value.crossChunkBlocks); // Always add blocks
             }
+            chunkCrossData.Clear();
         }
         return toAddChunk;
     }
@@ -199,7 +201,7 @@ public class Server_r {
         Vector3i checkPos = new(position.X+16, position.Y, position.Z);
         Chunk_r? neighbour;
         if (world.GetChunk(checkPos, out neighbour)) {
-            neighbour.Redraw = true;
+            neighbour!.Redraw = true;
             neighbour.AddedFaces = false;
             if (!chunksToMesh.Contains(neighbour)) {
                 chunksToMesh.Enqueue(neighbour);
@@ -208,7 +210,7 @@ public class Server_r {
         }
         checkPos = new(position.X, position.Y, position.Z-16);
         if (world.GetChunk(checkPos, out neighbour)) {
-            neighbour.Redraw = true;
+            neighbour!.Redraw = true;
             neighbour.AddedFaces = false;
             if (!chunksToMesh.Contains(neighbour)) {
                 chunksToMesh.Enqueue(neighbour);
@@ -217,7 +219,7 @@ public class Server_r {
         }
         checkPos = new(position.X, position.Y, position.Z+16);
         if (world.GetChunk(checkPos, out neighbour)) {
-            neighbour.Redraw = true;
+            neighbour!.Redraw = true;
             neighbour.AddedFaces = false;
             if (!chunksToMesh.Contains(neighbour)) {
                 chunksToMesh.Enqueue(neighbour);
@@ -226,7 +228,7 @@ public class Server_r {
         }
         checkPos = new(position.X-16, position.Y, position.Z);
         if (world.GetChunk(checkPos, out neighbour)) {
-            neighbour.Redraw = true;
+            neighbour!.Redraw = true;
             neighbour.AddedFaces = false;
             if (!chunksToMesh.Contains(neighbour)) {
                 chunksToMesh.Enqueue(neighbour);

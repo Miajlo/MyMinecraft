@@ -98,7 +98,7 @@ public readonly struct TextureData {
                     new Vector2(topLeft.X, topLeft.Y) / 4,//bl
                     new Vector2(topLeft.X + 1, topLeft.Y) / 4, //br       // Flip horizontally for BACK/LEFT
                     new Vector2(topLeft.X + 1, topLeft.Y + 1) / 4,//tr
-                };
+            };
         }
 
         if (face == Faces.LEFT) {
@@ -135,56 +135,6 @@ public readonly struct TextureData {
             (uvsToRotate[0], uvsToRotate[1]) = (uvsToRotate[1], uvsToRotate[0]);
         }
 
-        //if ((rotation == Faces.TOP || rotation == Faces.BOTTOM) || face == Faces.TOP || face == Faces.BOTTOM ) {
-        //    // For TOP and BOTTOM faces, no change needed in UVs, they remain as is
-        //    return uvsToRotate;
-        //}
-
-        //// If rotation is LEFT or RIGHT, apply horizontal flip
-        //if (rotation == Faces.LEFT || rotation == Faces.RIGHT) {          
-
-        //    if (rotation == Faces.LEFT) {
-        //        // Flip the UVs for LEFT rotation (flip horizontally)
-        //        return new List<Vector2>
-        //        {
-        //        new Vector2(uvsToRotate[1].X, uvsToRotate[1].Y),  // br
-        //        new Vector2(uvsToRotate[0].X, uvsToRotate[0].Y),  // tl
-        //        new Vector2(uvsToRotate[3].X, uvsToRotate[3].Y),  // tr
-        //        new Vector2(uvsToRotate[2].X, uvsToRotate[2].Y)   // bl
-        //    };
-        //    }
-        //    else if (rotation == Faces.RIGHT) {
-        //        // Flip the UVs for RIGHT rotation (flip horizontally)
-        //        return new List<Vector2>
-        //        {
-        //        new Vector2(uvsToRotate[2].X, uvsToRotate[2].Y),  // bl
-        //        new Vector2(uvsToRotate[3].X, uvsToRotate[3].Y),  // tr
-        //        new Vector2(uvsToRotate[0].X, uvsToRotate[0].Y),  // tl
-        //        new Vector2(uvsToRotate[1].X, uvsToRotate[1].Y)   // br
-        //    };
-        //    }
-        //}
-
-        //// If rotation is FRONT or BACK, handle flip vertically (swap top/bottom)
-        //if (rotation == Faces.FRONT || rotation == Faces.BACK) {
-        //    if (face == Faces.TOP || face == Faces.BOTTOM) {
-        //        // If it's a top or bottom face, return the default UVs
-        //        return uvsToRotate;
-        //    }
-
-        //    if (rotation == Faces.BACK) {
-        //        // Flip the UVs for BACK rotation (flip vertically)
-        //        return new List<Vector2>
-        //        {
-        //        new Vector2(uvsToRotate[0].X, uvsToRotate[0].Y + 1),  // tl
-        //        new Vector2(uvsToRotate[3].X, uvsToRotate[3].Y + 1),  // tr
-        //        new Vector2(uvsToRotate[2].X, uvsToRotate[2].Y),      // br
-        //        new Vector2(uvsToRotate[1].X, uvsToRotate[1].Y)       // bl
-        //    };
-        //    }
-        //}
-
-        // Default case: return the UVs without any changes
         return uvsToRotate;
     }
 
