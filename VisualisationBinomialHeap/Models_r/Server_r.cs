@@ -301,14 +301,14 @@ public class Server_r {
             Vector3i chunkBlockPos = (Vector3i)Chunk_r.ConvertToChunkBlockCoord(new Vector3(x, y, z));
 
             if (y<Chunk_r.HEIGHT && world.GetChunk(chunkPos, out Chunk_r? chunk)) {
-                BlockType block = chunk.GetBlockAt(chunkBlockPos);
+                BlockType block = chunk.GetBlockTypeAt(chunkBlockPos);
 
                 if (prevValSet && (prevChunkPos == chunkPos || !world.IsLoadedChunk(prevChunkPos)))
-                    prevBlock = chunk.GetBlockAt(prevBlockPos);
+                    prevBlock = chunk.GetBlockTypeAt(prevBlockPos);
                 else if (prevValSet && prevChunkPos != chunkPos) {
                     if (!world.GetChunk(prevChunkPos, out chunk))
                         return;
-                    prevBlock = chunk.GetBlockAt(prevBlockPos);
+                    prevBlock = chunk!.GetBlockTypeAt(prevBlockPos);
                 }
                 else
                     prevBlock = BlockType.AIR;
@@ -337,6 +337,14 @@ public class Server_r {
 
                         var faceHit = DetermineHitFace(chunkBlockPos+chunkPos, prevBlockPos+prevChunkPos);
                         Console.WriteLine($"Hit the face: {faceHit}");
+
+                        AABB playerAABB = Camera.GetPlayerHitbox(packet.position);
+                        AABB blockAABB = new AABB(prevBlockPos, prevBlockPos + Vector3.One);
+
+                        if (playerAABB.Intersects(blockAABB)) {
+                            Console.WriteLine("ERROR: [ Can't place block inside player]");
+                            return;
+                        }
 
                         chunk.PlaceBlockAt(prevBlockPos, packet.selectedBlock, faceHit);
                         chunk.Redraw = true;
@@ -414,7 +422,7 @@ public class Server_r {
             Vector3i chunkBlockPos = (Vector3i)Chunk_r.ConvertToChunkBlockCoord(new Vector3(x, y, z));
 
             if (y<Chunk_r.HEIGHT && world.GetChunk(chunkPos, out Chunk_r? chunk)) {
-                BlockType block = chunk.GetBlockAt(chunkBlockPos);
+                BlockType block = chunk.GetBlockTypeAt(chunkBlockPos);
 
                 if (block != BlockType.AIR) {
                     lockChunk.EnterWriteLock();
@@ -563,16 +571,16 @@ public class Server_r {
         for (var x = 0; x<Chunk_r.SIZE; ++x) {
             for (var z = 0; z<Chunk_r.SIZE; ++z) {
                 for (var y = 0; y<Chunk_r.HEIGHT; ++y) {
-                    if (chunk.chunkBlocks[x, y, z].type != BlockType.AIR) {
+                    if (chunk.GetBlockTypeAt(x, y, z) != BlockType.AIR) {
                         uint addedFaces = 0; // Reset for each block
                         Vector3 blockPos = new(x, y, z);
-                        var currBlock = chunk.chunkBlocks[x, y, z];
+                        var currBlock = chunk.GetBlockAt(x,y,z);
                         // Left face
                         Vector3 neighbourBlockPos = new(Chunk_r.SIZE-1, y, z);
                         Vector3 neighbourChunkPos = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z);
                         BlockType neighbourBlock = world.GetBlockAt(neighbourChunkPos, neighbourBlockPos);
 
-                        if ((neighbourBlock==BlockType.AIR && x==0) || (x!=0 && chunk.chunkBlocks[x - 1, y, z].type == BlockType.AIR)) {
+                        if ((neighbourBlock==BlockType.AIR && x==0) || (x!=0 && chunk.GetBlockTypeAt(x-1, y, z) == BlockType.AIR)) {
                             var faceData = Block.GetFaceData(Faces.LEFT, blockPos);
                             chunkVert.AddRange(faceData);
                             chunkUVs.AddRange(TextureData.GetUVs(currBlock.type, Faces.LEFT, currBlock.rotation));
@@ -582,7 +590,7 @@ public class Server_r {
                         neighbourChunkPos = new(chunk.position.X+16, chunk.position.Y, chunk.position.Z);
                         neighbourBlock = world.GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                         // Right face
-                        if ((neighbourBlock==BlockType.AIR && x == Chunk_r.SIZE - 1) || (x != Chunk_r.SIZE-1 && chunk.chunkBlocks[x + 1, y, z].type == BlockType.AIR)) {
+                        if ((neighbourBlock==BlockType.AIR && x == Chunk_r.SIZE - 1) || (x != Chunk_r.SIZE-1 && chunk.GetBlockTypeAt(x + 1, y, z) == BlockType.AIR)) {
                             var faceData = Block.GetFaceData(Faces.RIGHT, blockPos);
                             chunkVert.AddRange(faceData);
                             chunkUVs.AddRange(TextureData.GetUVs(currBlock.type, Faces.RIGHT, currBlock.rotation));
@@ -590,7 +598,7 @@ public class Server_r {
                         }
 
                         // Bottom face
-                        if (y == 0 || chunk.chunkBlocks[x, y - 1, z].type == BlockType.AIR) {
+                        if (y == 0 || chunk.GetBlockTypeAt(x, y - 1, z) == BlockType.AIR) {
                             var faceData = Block.GetFaceData(Faces.BOTTOM, blockPos);
                             chunkVert.AddRange(faceData);
                             chunkUVs.AddRange(TextureData.GetUVs(currBlock.type, Faces.BOTTOM, currBlock.rotation));
@@ -598,7 +606,7 @@ public class Server_r {
                         }
 
                         // Top face
-                        if (y == Chunk_r.HEIGHT - 1 || chunk.chunkBlocks[x, y + 1, z].type == BlockType.AIR) {
+                        if (y == Chunk_r.HEIGHT - 1 || chunk.GetBlockTypeAt(x, y + 1 , z)== BlockType.AIR) {
                             var faceData = Block.GetFaceData(Faces.TOP, blockPos);
                             chunkVert.AddRange(faceData);
                             chunkUVs.AddRange(TextureData.GetUVs(currBlock.type, Faces.TOP, currBlock.rotation));
@@ -608,7 +616,7 @@ public class Server_r {
                         neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z-16);
                         neighbourBlock = world.GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                         // Back face
-                        if ((neighbourBlock == BlockType.AIR && z == 0)|| (z != 0 && chunk.chunkBlocks[x, y, z - 1].type == BlockType.AIR)) {
+                        if ((neighbourBlock == BlockType.AIR && z == 0)|| (z != 0 && chunk.GetBlockTypeAt(x, y, z-1) == BlockType.AIR)) {
                             var faceData = Block.GetFaceData(Faces.BACK, blockPos);
                             chunkVert.AddRange(faceData);
                             chunkUVs.AddRange(TextureData.GetUVs(currBlock.type, Faces.BACK, currBlock.rotation));
@@ -618,7 +626,7 @@ public class Server_r {
                         neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z+16);
                         neighbourBlock = world.GetBlockAt(neighbourChunkPos, neighbourBlockPos);
                         // Front face
-                        if ((neighbourBlock == BlockType.AIR && z == Chunk_r.SIZE - 1) || (z != Chunk_r.SIZE-1 && chunk.chunkBlocks[x, y, z + 1].type == BlockType.AIR)) {
+                        if ((neighbourBlock == BlockType.AIR && z == Chunk_r.SIZE - 1) || (z != Chunk_r.SIZE-1 && chunk.GetBlockTypeAt(x, y, z + 1) == BlockType.AIR)) {
                             var faceData = Block.GetFaceData(Faces.FRONT, blockPos);
                             chunkVert.AddRange(faceData);
                             chunkUVs.AddRange(TextureData.GetUVs(currBlock.type, Faces.FRONT, currBlock.rotation));

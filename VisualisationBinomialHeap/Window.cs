@@ -21,12 +21,13 @@ public class Window : GameWindow {
     Server_r server;
 
     ShaderProgram shaderProgram;
-    
+    HudTextures hud;
     public Window(int width, int height, string title):base(GameWindowSettings.Default, NativeWindowSettings.Default) {
         this.CenterWindow(new Vector2i(width, height));
         Height = height;
         Width = width;
         this.Title = title;
+        hud = new();
         stopwatch = new();
         stopwatch.Start();
         frameCount = 0;

@@ -291,7 +291,7 @@ public class Camera {
 
         float newY = position.Y;
 
-        newY += upwardVelocity*deltaTime - gravitalVelocity * deltaTime;
+        newY += upwardVelocity * deltaTime - gravitalVelocity * deltaTime;
 
         newPosition.X += moveDirection.X * gameRules.movementSpeed * deltaTime;
         if (CheckForCollisions(GetPlayerHitbox(newPosition)).Any())
@@ -369,7 +369,7 @@ public class Camera {
                 for (int z = (int)Math.Floor(playerAABB.Min.Z); z <= (int)Math.Floor(playerAABB.Max.Z); z++) {
                     Vector3 blockPos = new Vector3(x, y, z);
                     Vector3i chunkPos = (Vector3i)Chunk_r.ConvertToChunkCoords(blockPos);
-                    Vector3 localBlockPos = Chunk_r.ConvertToChunkBlockCoord(blockPos);
+                    Vector3i localBlockPos = Chunk_r.ConvertToChunkBlockCoord(blockPos);
 
                     if (!world.GetChunk(chunkPos, out var chunk))
                         continue;
@@ -377,7 +377,7 @@ public class Camera {
                     if (!world.IsLoadedChunk(chunk.position))
                         continue;
 
-                    if (chunk.GetBlockAt(localBlockPos) != BlockType.AIR) {
+                    if (chunk.GetBlockTypeAt(localBlockPos) != BlockType.AIR) {
                         // Block hitbox (AABB for the block)
                         AABB blockAABB = new AABB(blockPos, blockPos + Vector3.One);
 
@@ -459,7 +459,7 @@ public class Camera {
         return $"{posX},{posY},{posZ}";
     }
 
-    public AABB GetPlayerHitbox(Vector3 eyePos) {
+    public static AABB GetPlayerHitbox(Vector3 eyePos) {
         float minX = eyePos.X - GameConfig.playerWidth / 2;
         float maxX = eyePos.X + GameConfig.playerWidth / 2;
 

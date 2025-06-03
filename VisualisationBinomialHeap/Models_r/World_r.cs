@@ -10,6 +10,9 @@ public  class World_r {
     #region WORLD_DATA
     public int seed;
     public NoiseSettings perlinNoise2DSettings;
+    public const byte REGION_SIZE = 32;
+    public string name;
+    public string savesPath;
     #endregion
 
     #region CONSTRUCTORS
@@ -19,9 +22,11 @@ public  class World_r {
         seed = 0;
 
         perlinNoise2DSettings = new();
+        string? currentDir = DirExtension.ProjectBase();
+        Console.WriteLine("Current directory: " + currentDir);
     }
 
-    public World_r(int seed, NoiseSettings settings):base() {
+    public World_r(int seed, NoiseSettings settings, string name = "New World", string savesPath = "Saves"):base() {
         this.seed = seed;
         perlinNoise2DSettings = settings;
     }
@@ -54,7 +59,7 @@ public  class World_r {
         if (!loadedChunks.TryGetValue(chunkPos, out var chunk))
             return BlockType.AIR;
 
-        return chunk.chunkBlocks[(int)blockPos.X, (int)blockPos.Y, (int)blockPos.Z].type;
+        return chunk.GetBlockTypeAt((Vector3i)blockPos);
     }
     /// <summary>
     /// Get the block at the specified global position
@@ -91,6 +96,13 @@ public  class World_r {
         BlockType block = GetBlockAt(chunkPos, blockPosX);
 
         return block != BlockType.AIR;
+    }
+
+    public void SaveChunk(Chunk_r chunk) {
+        int regionX = chunk.position.X / REGION_SIZE;
+        int regionZ = chunk.position.Y / REGION_SIZE;
+
+
     }
     #endregion
 

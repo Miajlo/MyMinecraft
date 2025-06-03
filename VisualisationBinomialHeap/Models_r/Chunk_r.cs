@@ -1,13 +1,17 @@
-﻿namespace MyMinecraft.Models_r; 
+﻿using System.Buffers;
+using System.Drawing;
+
+namespace MyMinecraft.Models_r; 
 public class Chunk_r {
     #region CONSTANTS
     public const byte SIZE = 16;
     public const short HEIGHT = 64;
+    public const byte REGION_SIZE = 32;
     #endregion
 
     #region CHUNK_DATA
     public Vector3i position;
-    public Block_r[,,] chunkBlocks;
+    public Block_r[] chunkBlocks;
     public short[,] heightMap;
     #endregion
 
@@ -46,7 +50,7 @@ public class Chunk_r {
         ShouldClearData = false;
         UsedForStructGen = false;
 
-        chunkBlocks = new Block_r[SIZE, HEIGHT, SIZE];
+        chunkBlocks = new Block_r[SIZE * SIZE * HEIGHT];
         heightMap = new short[SIZE, SIZE];
 
         InitializeBlocks();
@@ -81,7 +85,7 @@ public class Chunk_r {
         for (int x = 0; x < SIZE; x++) {
             for (int y = 0; y < HEIGHT; y++) {
                 for (int z = 0; z < SIZE; z++) {
-                    chunkBlocks[x, y, z] = new();  // Custom initialization
+                    chunkBlocks[Index(x, y, z)] = new();  // Custom initialization
                 }
             }
         }
@@ -90,9 +94,11 @@ public class Chunk_r {
     private void GenChunkBlocks() {
         for (int x = 0; x < SIZE; ++x) {
             for (int z = 0; z < SIZE; ++z) {
-                for (int y = 0; y < HEIGHT; ++y) { 
-                    chunkBlocks[x, y, z].type = chunkBlocks[x,y,z].type == BlockType.AIR ?
-                                           GetBlockType(x, y, z):chunkBlocks[x,y,z].type;
+                for (int y = 0; y < HEIGHT; ++y) {
+                    var index = Index(x, y, z);
+                    chunkBlocks[index].type =
+                                           chunkBlocks[index].type == BlockType.AIR ?
+                                           GetBlockType(x, y, z):chunkBlocks[index].type;
                 }
             }
         }
@@ -230,7 +236,7 @@ public class Chunk_r {
 
                         continue; // for now ignore chunk borders
                     }
-                    if (chunkBlocks[sx+x, y+height, sz+z].type == BlockType.AIR)
+                    if (chunkBlocks[Index(sx+x, y+height, sz+z)].type == BlockType.AIR)
                         SetBlockAt(setBlockPos, (BlockType)Tree.treeBlocks[y, x, z]);
                 }
             }
@@ -359,36 +365,70 @@ public class Chunk_r {
     }
 
 
-    public void SetBlockAt(Vector3 chunkBlockPos, BlockType blockType) {
-        if (InvalidBlockCoords(chunkBlockPos)) {
-            Console.WriteLine($"Invalid block position to set: {chunkBlockPos}");
+    public void SetBlockAt(Vector3 blockPos, BlockType blockType) {
+        if (InvalidBlockCoords(blockPos)) {
+            Console.WriteLine($"Invalid block position to set: {blockPos}");
             return;
         }
-        chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(chunkBlockPos);
-        chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].type = blockType;
+        var index = Index(Chunk_r.ConvertToChunkBlockCoord(blockPos));
+        chunkBlocks[index].type = blockType;
     }
 
-    public void PlaceBlockAt(Vector3 chunkBlockPos, BlockType blockType, Faces rotation) {
-        if (InvalidBlockCoords(chunkBlockPos)) {
-            Console.WriteLine($"Invalid block position to set: {chunkBlockPos}");
+    public void PlaceBlockAt(Vector3 blockPos, BlockType blockType, Faces rotation) {
+        if (InvalidBlockCoords(blockPos)) {
+            Console.WriteLine($"Invalid block position to set: {blockPos}");
             return;
         }
-        chunkBlockPos = Chunk_r.ConvertToChunkBlockCoord(chunkBlockPos);
-        chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].type = blockType;
-        chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].rotation = rotation;
+        var index = Index(Chunk_r.ConvertToChunkBlockCoord(blockPos));
+        chunkBlocks[index].type = blockType;
+        chunkBlocks[index].rotation = rotation;
 
     }
 
-    public BlockType GetBlockAt(Vector3 chunkBlockPos) {
+    public BlockType GetBlocTypeAt(Vector3i blockPos) {
 
-        if (InvalidBlockCoords(chunkBlockPos)) {
-            throw new ArgumentException($"Invalid chunk block pos: {chunkBlockPos}, chunk:{position}");
+        if (InvalidBlockCoords(blockPos)) {
+            throw new ArgumentException($"Invalid chunk block pos: {blockPos}, chunk:{position}");
         }
 
-        return chunkBlocks[(int)chunkBlockPos.X, (int)chunkBlockPos.Y, (int)chunkBlockPos.Z].type;
+        return chunkBlocks[Index(blockPos.X, blockPos.Y, blockPos.Z)].type;
+    }
+
+    public BlockType GetBlockTypeAt(int x, int y, int z) {
+        if(InvalidBlockCoords(new(x, y, z))) {
+            Console.WriteLine($"[ERROR]: Invalid block position: {x}, {y}, {z}]");
+            return BlockType.AIR;
+        }
+        return chunkBlocks[Index(x, y, z)].type;
+    }
+
+    public BlockType GetBlockTypeAt(Vector3i pos) {
+        if (InvalidBlockCoords(pos)) {
+            Console.WriteLine($"[ERROR]: Invalid block position: {pos}]");
+            return BlockType.AIR;
+        }
+        return chunkBlocks[Index(pos)].type;
+    }
+
+    public Block_r GetBlockAt(Vector3i pos) {
+        if (InvalidBlockCoords(pos)) {
+            throw new ArgumentException($"Invalid chunk block pos: {pos}, chunk:{position}");
+        }
+
+        return chunkBlocks[Index(pos)];
+    }
+
+    public Block_r GetBlockAt(int x, int y, int z) {
+        if (InvalidBlockCoords(new(x, y, z))) {
+            throw new ArgumentException($"Invalid chunk block pos: {x}, {y}, {z}, chunk:{position}");
+        }
+
+        return chunkBlocks[Index(x,y,z)];
     }
 
     public void SaveToFile() {
+        
+
         return;
     }
 
@@ -452,5 +492,10 @@ public class Chunk_r {
 
         currChunkPos *= Chunk_r.SIZE;
     }
+
+    private int Index(int x, int y, int z) => x + SIZE * (z + SIZE * y);
+
+    public int Index(Vector3i pos) => pos.X + SIZE * (pos.Z + SIZE * pos.Y);  // Corrected here
+
     #endregion
 }
