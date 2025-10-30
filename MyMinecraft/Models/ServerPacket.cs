@@ -1,4 +1,4 @@
-﻿namespace MyMinecraft.Models_r;
+﻿namespace MyMinecraft.Models;
 
 public enum PacketType : byte {
     NONE, // will be used for setting up connection with client later

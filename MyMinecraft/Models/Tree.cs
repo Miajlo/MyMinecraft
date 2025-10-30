@@ -1,10 +1,12 @@
 ﻿namespace MyMinecraft.Models;
-public static class Tree {
+public static class Tree
+{
     public static readonly int[,,] treeBlocks;
     public const byte SIZE = 5;
     public const byte HEIGHT = 7;
 
-    static Tree() {
+    static Tree()
+    {
         treeBlocks = new int[HEIGHT, SIZE, SIZE] // HEIGHT = layers, SIZE x SIZE = grid
         {
             { // Layer 1 (Bottom)

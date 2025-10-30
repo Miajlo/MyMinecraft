@@ -1,4 +1,4 @@
-﻿namespace MyMinecraft.Models_r;
+﻿namespace MyMinecraft.Models;
 
 public class TerrainSpline {
     private List<float> inputValues;

@@ -2,7 +2,7 @@
 using OpenTK.Compute.OpenCL;
 using MyMinecraft.Graphics;
 using System.Diagnostics;
-using MyMinecraft.Models_r;
+using MyMinecraft.Models;
 
 namespace MyMinecraft;
 
@@ -14,11 +14,11 @@ public class Window : GameWindow {
     private int frameCount;
 
     public int renderDistance = 10;
-    public World_r world = new World_r(0, new(), "My World");
+    public World world = new World(0, new(), "My World");
     
     Camera? camera;
 
-    Server_r server;
+    Server server;
 
     ShaderProgram shaderProgram;
     HudTextures hud;
@@ -52,8 +52,8 @@ public class Window : GameWindow {
         GL.CullFace(CullFaceMode.Back); // or Front, depending on which faces should be culled
         GL.DepthFunc(DepthFunction.Less); // or another appropriate depth function
 
-        camera = new(Width, Height, (1 , 70, 1), new WeakReference<World_r>(world), server);
-        server = new Server_r(world, renderDistance);
+        camera = new(Width, Height, (1 , 70, 1), new WeakReference<World>(world), server);
+        server = new Server(world, renderDistance);
         CursorState = CursorState.Grabbed;
         server.Start();
     }

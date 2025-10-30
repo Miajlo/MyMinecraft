@@ -1,346 +1,125 @@
-﻿//namespace MyMinecraft.Models;
-//public class World {
-//    public ConcurrentDictionary<Vector3, Chunk> allChunks = new();
-//    public ConcurrentQueue<Chunk> forRendering = new();
+﻿namespace MyMinecraft.Models;
+public  class World {
+    #region CHUNK_DATA
+    private HashSet<Vector3> generatedChunks;
+    private ConcurrentDictionary<Vector3, Chunk> loadedChunks;
+    #endregion
 
-//    public int renderDistance = 1;
-//    public bool readyToRender = false;
-//    public object locker = new();
-//    public void AddChunk(Chunk chunk) {
-//        if (allChunks.TryAdd(chunk.position, chunk))
-//            Console.WriteLine($"Succesfully saved chunk: {chunk.position}");
-//        else
-//            Console.WriteLine($"Error adding chunk: {chunk.position}");
-//    }
+    #region WORLD_DATA
+    public int seed;
+    public NoiseSettings perlinNoise2DSettings;
+    public const byte REGION_SIZE = 32;
+    public string name;
+    public string savesPath;
+    public string path;
+    public bool genDirty;
+    #endregion
 
-//    public void UpdateChunkRanderList(Vector3 pos) {
-//        //RemoveFarChunks(pos);
-//        //AddChunksToRender(pos);
-//        RemoveFarChunks(pos);
-//        //GC.Collect();
-//        Task.Run(() => {
-//            AddChunksToRender(pos);
-//        });
+    #region CONSTRUCTORS
+    public World() {
+        generatedChunks = [];
+        loadedChunks = [];
+        name = savesPath = "";
+        seed = 0;
+        genDirty = false;
+    }
 
-//        //GC.Collect();
-//        //GC.WaitForFullGCComplete();
-//    }
+    public World(int seed, NoiseSettings settings, string name = "New World", string savesPath = "Saves"):this() {
+        this.seed = seed;
+        perlinNoise2DSettings = settings;
 
-//    private void AddChunksToRender(Vector3 pos) {
-//        readyToRender = false;
-//        var currChunkPos = Camera.GetChunkPos(pos);
-//        //var chunkID = $"{currChunkPos.X}, {currChunkPos.Z}";
-//        Chunk.ConvertToWorldCoords(ref currChunkPos);
-//        //Console.WriteLine($"World::currChunkID: {chunkID}");
-//        Chunk? toAdd = new();
+        perlinNoise2DSettings = new();
+        path = Path.Combine(DirExtension.ProjectBase(), savesPath);
+        path = Path.Combine(path, name);
 
-//        int offset = renderDistance * Chunk.SIZE;
-//        int totalIterations = 0;
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
+        else
+            LoadWorldData();
 
-//        int XbottomBound = (int)(currChunkPos.X) - offset;
-//        int ZbottomBound = (int)(currChunkPos.Z) - offset;
-//        int XtopBound = XbottomBound + 2*offset;
-//        int ZtopBound = ZbottomBound + 2*offset;
+    }
 
+    private void LoadWorldData() {
+        
+    }
+    #endregion
 
-//        for (int i = XbottomBound; i <= XtopBound; i+=Chunk.SIZE) {
-//            for (int j = ZbottomBound; j <= ZtopBound; j+=Chunk.SIZE) {
-//                //Console.WriteLine($"i = {i}, j = {j}");
-//                Vector3 copyChunkPos = new(i, 0, j);
+    #region CHUNK_DATA_METHODS
+    public bool AddLoadedChunk(Chunk chunk) {
+        //if (!IsGenerated(chunk.position))
+        //    generatedChunks.Add(chunk.position);
 
-//                if (!allChunks.TryGetValue(copyChunkPos, out toAdd)) {
+        return loadedChunks.TryAdd(chunk.position, chunk);
+    }
 
-//                    Console.WriteLine($"World::currCunkPosition:{copyChunkPos}");
-//                    toAdd = new(copyChunkPos);
-//                    if (allChunks.TryAdd(copyChunkPos, toAdd))
-//                        Console.WriteLine("Saved chunk succesfully");
-//                }
-//                else {
-//                    Console.WriteLine($"Loaded chunk: {copyChunkPos}");
-//                }
-//                //if (!forRendering.Contains(toAdd)) {
-//                //    forRendering.Enqueue(toAdd);
-//                //}
+    public Chunk? RemoveChunk(Vector3 position) {
 
+        if (!loadedChunks.TryRemove(position, out var chunk))
+           throw new ArgumentException($"[ERROR]: Chunk not loaded: {position}");
 
-//                ++totalIterations;
-//            }
+        //if (chunk.Dirty)
+        //    chunk.SaveToFile();
 
-//        }
-//        MeshChunks();
+        return chunk;
+    }
 
-//        Console.WriteLine($"TotalIterations: {totalIterations}");
-//    }
+    public bool GetChunk(Vector3i pos, out Chunk? chunk) {
+        return loadedChunks.TryGetValue(pos, out chunk);
+    }
 
-//    public void MeshChunks() {
+    public BlockType GetBlockAt(Vector3 chunkPos, Vector3 blockPos) {
+        if (!loadedChunks.TryGetValue(chunkPos, out var chunk))
+            return BlockType.AIR;
 
-//        foreach (var chunk in allChunks.Values) {
-//            if (chunk.AddedFaces || !chunk.ReDraw)
-//                continue;
+        return chunk.GetBlockTypeAt((Vector3i)blockPos);
+    }
+    /// <summary>
+    /// Get the block at the specified global position
+    /// </summary>
+    /// <param name="blockPos"></param>
+    /// <returns>Block type at position, or AIR if chunk not loaded</returns>
+    public BlockType GetBlockAt(Vector3 blockPos) {
+        var chunkPos = Chunk.ConvertToChunkCoords(blockPos);
+        
+        if(!loadedChunks.TryGetValue(chunkPos, out var chunk))
+            return BlockType.AIR;
 
-//            for (var x = 0; x<Chunk.SIZE; ++x) {
-//                for (var z = 0; z<Chunk.SIZE; ++z) {
-//                    for (var y = 0; y<Chunk.HEIGHT; ++y) {
-//                        if (chunk.chunkBlocks[x, y, z] != BlockType.AIR) {
-//                            uint addedFaces = 0; // Reset for each block
-//                            Vector3 blockPos = new(x, y, z);
-//                            // Left face
-//                            Vector3 neighbourBlockPos = new(Chunk.SIZE-1, y, z);
-//                            Vector3 neighbourChunkPos = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z);
-//                            BlockType neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
+        var chunkBlockPos = Chunk.ConvertToChunkBlockCoord(blockPos);
 
-//                            if ((neighbourBlock==BlockType.AIR && x==0) || (x!=0 && chunk.chunkBlocks[x - 1, y, z] == BlockType.AIR)) {
-//                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.LEFT, blockPos);
-//                                addedFaces++;
-//                            }
-//                            neighbourBlockPos = new(0, y, z);
-//                            neighbourChunkPos = new(chunk.position.X+16, chunk.position.Y, chunk.position.Z);
-//                            neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
-//                            // Right face
-//                            if ((neighbourBlock==BlockType.AIR && x == Chunk.SIZE - 1) || (x != Chunk.SIZE-1 && chunk.chunkBlocks[x + 1, y, z] == BlockType.AIR)) {
-//                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.RIGHT, blockPos);
-//                                addedFaces++;
-//                            }
-
-//                            // Bottom face
-//                            if (y == 0 || chunk.chunkBlocks[x, y - 1, z] == BlockType.AIR) {
-//                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.BOTTOM, blockPos);
-//                                addedFaces++;
-//                            }
-
-//                            // Top face
-//                            if (y == Chunk.HEIGHT - 1 || chunk.chunkBlocks[x, y + 1, z] == BlockType.AIR) {
-//                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.TOP, blockPos);
-//                                addedFaces++;
-//                            }
-//                            neighbourBlockPos = new(x, y, Chunk.SIZE-1);
-//                            neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z-16);
-//                            neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
-//                            // Back face
-//                            if ((neighbourBlock == BlockType.AIR && z == 0)|| (z != 0 && chunk.chunkBlocks[x, y, z - 1] == BlockType.AIR)) {
-//                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.BACK, blockPos);
-//                                addedFaces++;
-//                            }
-//                            neighbourBlockPos = new(x, y, 0);
-//                            neighbourChunkPos = new(chunk.position.X, chunk.position.Y, chunk.position.Z+16);
-//                            neighbourBlock = GetBlockAt(neighbourChunkPos, neighbourBlockPos);
-//                            // Front face
-//                            if ((neighbourBlock == BlockType.AIR && z == Chunk.SIZE - 1) || (z != Chunk.SIZE-1 && chunk.chunkBlocks[x, y, z + 1] == BlockType.AIR)) {
-//                                chunk.IntegrateFace(chunk.chunkBlocks[x, y, z], Faces.FRONT, blockPos);
-//                                addedFaces++;
-//                            }
-
-//                            // Add indices for the added faces
-//                            chunk.AddInceces(addedFaces);
-//                            //chunkBlocks[x, y, z].ClearFaceData();
-//                            chunk.AddedFaces = true;
-//                            chunk.ReDraw = false;
-//                        }
-//                    }
-//                }
-//            }
-//            if (!forRendering.Contains(chunk)) {
-//                forRendering.Enqueue(chunk);
-//            }
-//        }
-//    }
-
-//    public void RenderChunks(ShaderProgram program, Matrix4 projection) {
-//        Frustum frustum = new();
-//        frustum.ExtractFrustumPlanes(projection);
-
-//        foreach (var chunk in forRendering) {
-//            Vector3 leftCase = new(chunk.position.X+16, chunk.position.Y, chunk.position.Z+16);
-//            Vector3 rightCase = new(chunk.position.X-16, chunk.position.Y, chunk.position.Z-16);
-//            if (GameConfig.DoFrustumCulling &&
-//                !IsInsideFrustum(chunk.position, frustum) && !IsInsideFrustum(leftCase, frustum) &&
-//                !IsInsideFrustum(rightCase, frustum))
-//                continue;
+        return GetBlockAt(chunkPos, chunkBlockPos);
+    }
 
 
-//            //if (chunk.ReDraw)
-//            //    continue;
-//            if (!chunk.Built)
-//                chunk.BuildChunk();
-//            chunk.Render(program);
-//            chunk.AddedFaces = true;
-//        }
-//    }
+    public bool IsGenerated(Vector3 pos) {
+        return generatedChunks.Contains(pos);
+    }
 
-//    public void DrawChunkBorders(ShaderProgram program, Vector3 pos) {
+    public bool IsLoadedChunk(Vector3 position) {
+        return loadedChunks.ContainsKey(position);
+    }
 
-//        program.Bind();
+    internal void AddTreesToLoadedChunks() {
+        throw new NotImplementedException();
+    }
 
+    public bool IsSolidBlock(Vector3 blockPosX) {
+        Vector3i blockPos = Chunk.ConvertToChunkBlockCoord(blockPosX);
+        Vector3 chunkPos = Chunk.ConvertToChunkCoords(blockPosX);
+        BlockType block = GetBlockAt(chunkPos, blockPosX);
 
-//        var currChunkPos = Camera.GetChunkPos(pos);
-//        Chunk.ConvertToWorldCoords(ref currChunkPos);
+        return block != BlockType.AIR;
+    }
 
-//        float HEIGHT = 128.0f;   // Example height, can be replaced by your parameter
-//        float chunkSize = Chunk.SIZE; // Use your Chunk.SIZE value
-
-//        // Define vertices for vertical lines
-//        List<Vector3> verts = new List<Vector3> {
-//            new Vector3(0.0f, 0.0f, 0.0f),          // Line 1 start
-//            new Vector3(0.0f, HEIGHT, 0.0f),        // Line 1 end
-//            new Vector3(chunkSize, 0.0f, 0.0f),     // Line 2 start
-//            new Vector3(chunkSize, HEIGHT, 0.0f),   // Line 2 end
-//            new Vector3(0.0f, 0.0f, chunkSize),     // Line 3 start
-//            new Vector3(0.0f, HEIGHT, chunkSize),   // Line 3 end
-//            new Vector3(chunkSize, 0.0f, chunkSize),// Line 4 start
-//            new Vector3(chunkSize, HEIGHT, chunkSize)// Line 4 end
-//        };
-
-//        // Define indices for the lines
-//        List<uint> ind = new List<uint> {
-//            0, 1, // Line 1
-//            2, 3, // Line 2
-//            4, 5, // Line 3
-//            6, 7,  // Line 4
-//            1, 3,
-//            1, 5,
-//            7, 5,
-//            7, 3
-//        };
-
-//        Matrix4 model = Matrix4.CreateTranslation(currChunkPos);
-//        int modelLocation = GL.GetUniformLocation(program.ID, "model");
-//        model = model * Matrix4.Identity;
-//        GL.UniformMatrix4(modelLocation, true, ref model);
-
-//        // Create VAO for the line
-//        VAO lineVao = new VAO();
-//        lineVao.Bind();
-
-//        // Create VBO for the vertex data
-//        VBO lineVBO = new VBO(verts);
-//        lineVBO.Bind();
-//        lineVao.LinkToVAO(0, 3, lineVBO);  // 0 is the attribute index, 3 components per vertex (x, y, z)
-
-//        // Create IBO for the index data
-//        IBO lineIBO = new IBO(ind);
-//        lineIBO.Bind();
-//        GL.LineWidth(5.0f);
-
-//        lineVao.Bind();
-//        lineVBO.Bind();
-//        lineIBO.Bind();
-
-//        GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-//        // Draw the line
-//        GL.DrawElements(PrimitiveType.Lines, ind.Count, DrawElementsType.UnsignedInt, 0);
+    public void SaveChunkData(Chunk chunk) {
+        int regionX = chunk.position.X / REGION_SIZE;
+        int regionZ = chunk.position.Y / REGION_SIZE;
 
 
+    }
 
-//        Matrix4 identityMatrix = Matrix4.Identity;  // Identity matrix (no transformation)
+    public void AddGeneratedChunk(Vector3i position) {
+        generatedChunks.Add(position);
+    }
+    #endregion
 
-//        modelLocation = GL.GetUniformLocation(program.ID, "model");
-//        GL.UniformMatrix4(modelLocation, false, ref identityMatrix);
-//        // Unbind the buffers
-//        lineIBO.Unbind();
-//        lineVao.Unbind();
-//        lineVBO.Unbind();
-//    }
-
-//    private void RemoveFarChunks(Vector3 pos) {
-//        List<Chunk> toRemove = new();
-
-//        var playerPos = Camera.GetChunkPos(pos);
-//        Chunk.ConvertToWorldCoords(ref playerPos);
-//        foreach (var chunk in forRendering) {
-//            var chunkPos = chunk.position;
-//            //Chunk.ConvertToWorldCoords(ref chunkPos);
-//            if (Math.Abs(playerPos.X - chunkPos.X)/Chunk.SIZE >= renderDistance + 1 ||
-//                Math.Abs(playerPos.Z - chunkPos.Z)/Chunk.SIZE >= renderDistance + 1) {
-//                //chunk.Unload();
-//                toRemove.Add(chunk);
-//            }
-//        }
-
-//        var newForRendering = new ConcurrentQueue<Chunk>(forRendering.Except(toRemove));
-//        forRendering = newForRendering;
-
-//        foreach (var chunk in toRemove) {
-//            chunk.Delete();
-//            //MarkNeighboursForReDraw(chunk.position);
-//            allChunks.TryRemove(chunk.position, out _);
-//        }
-//    }
-
-//    public void MarkNeighboursForReDraw(Vector3 position) {
-//        Vector3 checkPos = new(position.X+16, position.Y, position.Z);
-//        Chunk? neighbour;
-//        if (allChunks.TryGetValue(checkPos, out neighbour)) {
-//            neighbour.ReDraw = true;
-//            neighbour.AddedFaces = false;
-//            neighbour.Delete();
-//        }
-//        checkPos = new(position.X, position.Y, position.Z-16);
-//        if (allChunks.TryGetValue(checkPos, out neighbour)) {
-//            neighbour.ReDraw = true;
-//            neighbour.AddedFaces = false;
-//            neighbour.Delete();
-//        }
-//        checkPos = new(position.X, position.Y, position.Z+16);
-//        if (allChunks.TryGetValue(checkPos, out neighbour)) {
-//            neighbour.ReDraw = true;
-//            neighbour.AddedFaces = false;
-//            neighbour.Delete();
-//        }
-//        checkPos = new(position.X-16, position.Y, position.Z);
-//        if (allChunks.TryGetValue(checkPos, out neighbour)) {
-//            neighbour.ReDraw = true;
-//            neighbour.AddedFaces = false;
-//            neighbour.Delete();
-//        }
-//    }
-
-//    private void UpdateChunkNeighbourFlag(Vector3 position) {
-//        Vector3 checkPos = new(position.X+16, position.Y, position.Z);
-//        Chunk? neighbour;
-//        if (allChunks.TryGetValue(checkPos, out neighbour)) {
-//            neighbour.neighbours ^= 0b_0001;
-//        }
-//        checkPos = new(position.X, position.Y, position.Z-16);
-//        if (allChunks.TryGetValue(checkPos, out neighbour)) {
-//            neighbour.neighbours ^= 0b_1000;
-//        }
-//        checkPos = new(position.X, position.Y, position.Z+16);
-//        if (allChunks.TryGetValue(checkPos, out neighbour)) {
-//            neighbour.neighbours ^= 0b_0010;
-//        }
-//        checkPos = new(position.X-16, position.Y, position.Z);
-//        if (allChunks.TryGetValue(checkPos, out neighbour)) {
-//            neighbour.neighbours ^= 0b_01000;
-//        }
-//    }
-
-
-//    public BlockType GetBlockAt(Vector3 chunkPos, Vector3 blockPos) {
-
-//        if (!allChunks.TryGetValue(chunkPos, out Chunk? chunk))
-//            return BlockType.AIR;
-
-
-
-//        return chunk.chunkBlocks[(int)blockPos.X, (int)blockPos.Y, (int)blockPos.Z];
-//    }
-
-
-//    public bool IsInsideFrustum(Vector3 position, Frustum frustum) {
-//        foreach (var plane in frustum.GetPlanes()) {
-//            float distance = Vector3.Dot(plane.Normal, position) + plane.D;
-//            if (distance < 0) {
-//                return false; // The point is outside one of the planes
-//            }
-//        }
-//        return true; // The point is inside all planes
-//    }
-
-//    public Chunk? GetChunk(Vector3 pos) {
-//        if (!allChunks.TryGetValue(pos, out Chunk? chunk))
-//            Console.WriteLine($"Could not find chunk: {pos}");
-
-//        return chunk;
-//    }
-//}
+}

@@ -2,10 +2,8 @@
 global using OpenTK.Windowing.Desktop;
 global using OpenTK.Graphics.OpenGL4;
 global using OpenTK.Windowing.Common;
-global using MyMinecraft.Models;
 global using OpenTK.Windowing.GraphicsLibraryFramework;
 global using StbImageSharp;
-global using MyMinecraft.Models;
 global using MyMinecraft.Graphics;
 global using System.Collections.Concurrent;
 global using MyMinecraft.Utils;

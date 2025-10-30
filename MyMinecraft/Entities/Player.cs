@@ -1,4 +1,6 @@
-﻿namespace MyMinecraft.Entities; 
+﻿using MyMinecraft.Models;
+
+namespace MyMinecraft.Entities;
 public class Player {
     public Camera cam;
     public GameRules gameRules;

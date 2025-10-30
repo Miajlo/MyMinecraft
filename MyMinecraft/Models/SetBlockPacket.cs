@@ -1,4 +1,4 @@
-﻿namespace MyMinecraft.Models_r; 
+﻿namespace MyMinecraft.Models;
 public class SetBlockPacket : ServerPacket{
     public Vector3i blockPos;
     public BlockType blockType;

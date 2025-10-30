@@ -1,6 +1,7 @@
 ﻿namespace MyMinecraft.Models;
 
-public enum BlockType : byte {
+public enum BlockType : byte
+{
     AIR,
     DIRT,
     STONE,
@@ -13,7 +14,8 @@ public enum BlockType : byte {
     MOSSY_COBBLESTONE
 }
 
-public enum Faces : byte {
+public enum Faces : byte
+{
     FRONT,
     BACK,
     LEFT,
@@ -38,9 +40,11 @@ public enum Faces : byte {
 //    };
 //}
 
-public struct FaceData {
+public struct FaceData
+{
     public List<Vector3>? vertices;
-    public FaceData(List<Vector3> list) {
+    public FaceData(List<Vector3> list)
+    {
         vertices = list;
     }
     public static readonly Dictionary<Faces, List<Vector3>> rawVertexData = new Dictionary<Faces, List<Vector3>>

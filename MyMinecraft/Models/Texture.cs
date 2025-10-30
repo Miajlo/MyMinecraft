@@ -1,11 +1,14 @@
-﻿namespace MyMinecraft.Models; 
-public static class Texture {
+﻿namespace MyMinecraft.Models;
+public static class Texture
+{
     public static int ID;
     public static string path = "../../../Resources/TextureAtlas.png";
-    static Texture() {
+    static Texture()
+    {
         Load();
     }
-    public static void Load() {
+    public static void Load()
+    {
         ID = GL.GenTexture();
 
         GL.ActiveTexture(TextureUnit.Texture0);
@@ -32,15 +35,18 @@ public static class Texture {
 
         Unbind();
     }
-    public static void Bind() {
-       GL.BindTexture(TextureTarget.Texture2D, ID);
+    public static void Bind()
+    {
+        GL.BindTexture(TextureTarget.Texture2D, ID);
     }
 
-    public static void Unbind() {
+    public static void Unbind()
+    {
         GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 
-    public static void Delete() {
+    public static void Delete()
+    {
         GL.DeleteTexture(ID);
     }
 }

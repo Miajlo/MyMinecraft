@@ -1,5 +1,6 @@
-﻿namespace MyMinecraft.Models; 
-public readonly struct TextureData {
+﻿namespace MyMinecraft.Models;
+public readonly struct TextureData
+{
     public const float txtSize = 1.0f;
     public static Dictionary<BlockType, Dictionary<Faces, Vector2>> blockUVs = new() {
     { BlockType.DIRT, new() {
@@ -78,8 +79,10 @@ public readonly struct TextureData {
 
 };
 
-    public static List<Vector2> GetUVs(BlockType type, Faces face, Faces rotation=Faces.TOP) {
-        if (!blockUVs.TryGetValue(type, out var faceUVs) || !faceUVs.TryGetValue(face, out var topLeft)) {
+    public static List<Vector2> GetUVs(BlockType type, Faces face, Faces rotation = Faces.TOP)
+    {
+        if (!blockUVs.TryGetValue(type, out var faceUVs) || !faceUVs.TryGetValue(face, out var topLeft))
+        {
             throw new KeyNotFoundException($"UV coordinates not found for {type} - {face}");
         }
 
@@ -91,8 +94,10 @@ public readonly struct TextureData {
     }
 
 
-    private static List<Vector2> GetUVsNoRotation(Faces face, Vector2 topLeft) {
-        if (face == Faces.BACK) {
+    private static List<Vector2> GetUVsNoRotation(Faces face, Vector2 topLeft)
+    {
+        if (face == Faces.BACK)
+        {
             return new() {
                     new Vector2(topLeft.X, topLeft.Y + 1) / 4,//tl
                     new Vector2(topLeft.X, topLeft.Y) / 4,//bl
@@ -101,7 +106,8 @@ public readonly struct TextureData {
             };
         }
 
-        if (face == Faces.LEFT) {
+        if (face == Faces.LEFT)
+        {
             return new() {
                 new Vector2(topLeft.X + 1, topLeft.Y + 1) / 4,//tr
                 new Vector2(topLeft.X + 1, topLeft.Y) / 4, //br       // Flip horizontally for BACK/LEFT
@@ -118,18 +124,21 @@ public readonly struct TextureData {
             };
     }
 
-    public static List<Vector2> GetUVsWithRot(Faces face, Vector2 topLeft, BlockType type, Faces rotation = Faces.TOP) {
+    public static List<Vector2> GetUVsWithRot(Faces face, Vector2 topLeft, BlockType type, Faces rotation = Faces.TOP)
+    {
         // Start with the default (no rotation) UVs
         List<Vector2> uvs = GetUVsNoRotation(face, topLeft);
         face = MapFaceRotation(face, rotation);
 
-        if (!blockUVs.TryGetValue(type, out var faceUVs) || !faceUVs.TryGetValue(face, out topLeft)) {
+        if (!blockUVs.TryGetValue(type, out var faceUVs) || !faceUVs.TryGetValue(face, out topLeft))
+        {
             throw new KeyNotFoundException($"UV coordinates not found for {type} - {face}");
         }
 
-        var uvsToRotate = GetUVsNoRotation(face,topLeft);
+        var uvsToRotate = GetUVsNoRotation(face, topLeft);
 
-        if(rotation != Faces.TOP) {
+        if (rotation != Faces.TOP)
+        {
             (uvsToRotate[0], uvsToRotate[2]) = (uvsToRotate[2], uvsToRotate[0]);
             (uvsToRotate[2], uvsToRotate[3]) = (uvsToRotate[3], uvsToRotate[2]);
             (uvsToRotate[0], uvsToRotate[1]) = (uvsToRotate[1], uvsToRotate[0]);
@@ -138,9 +147,11 @@ public readonly struct TextureData {
         return uvsToRotate;
     }
 
-    public static Faces MapFaceRotation(Faces face, Faces rotation) {
+    public static Faces MapFaceRotation(Faces face, Faces rotation)
+    {
         // Handle rotation for the FRONT face
-        if (rotation == Faces.FRONT) {
+        if (rotation == Faces.FRONT)
+        {
             if (face == Faces.FRONT)
                 return Faces.TOP;
             if (face == Faces.BACK)
@@ -152,7 +163,8 @@ public readonly struct TextureData {
         }
 
         // Handle rotation for the BACK face (reversing FRONT logic)
-        if (rotation == Faces.BACK) {
+        if (rotation == Faces.BACK)
+        {
             if (face == Faces.TOP)
                 return Faces.BACK;
             if (face == Faces.BOTTOM)
@@ -164,7 +176,8 @@ public readonly struct TextureData {
         }
 
         // Handle rotation for the LEFT face
-        if (rotation == Faces.LEFT) {
+        if (rotation == Faces.LEFT)
+        {
             if (face == Faces.TOP)
                 return Faces.RIGHT;
             if (face == Faces.BOTTOM)
@@ -176,7 +189,8 @@ public readonly struct TextureData {
         }
 
         // Handle rotation for the RIGHT face
-        if (rotation == Faces.RIGHT) {
+        if (rotation == Faces.RIGHT)
+        {
             if (face == Faces.TOP)
                 return Faces.LEFT;
             if (face == Faces.BOTTOM)
@@ -191,7 +205,8 @@ public readonly struct TextureData {
         return face;
     }
 
-    private static void Swap<T>(ref T item1, ref T item2) {        
+    private static void Swap<T>(ref T item1, ref T item2)
+    {
         var tmp = item1;
         item1 = item2;
         item2 = tmp;

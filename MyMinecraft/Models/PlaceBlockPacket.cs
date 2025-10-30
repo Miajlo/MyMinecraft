@@ -1,4 +1,4 @@
-﻿namespace MyMinecraft.Models_r;
+﻿namespace MyMinecraft.Models;
 public class PlaceBlockPacket : DestroyBlockPacket {
     public BlockType selectedBlock;
     public PlaceBlockPacket(Vector3 playerPos, Vector3 front, float playerRange,BlockType selectedBlock) : base(playerPos, front, playerRange) {

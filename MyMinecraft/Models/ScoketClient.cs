@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 
-namespace MyMinecraft.Models_r;
+namespace MyMinecraft.Models;
 
 public class SocketClient {
     private Socket socket;

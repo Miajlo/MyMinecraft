@@ -1,4 +1,4 @@
-﻿namespace MyMinecraft.Models_r;
+﻿namespace MyMinecraft.Models;
 
 public class TerrainEvaluator {
     private TerrainSpline continentalnessSpline;

@@ -1,6 +1,4 @@
-﻿
-
-namespace MyMinecraft.Models_r; 
+﻿namespace MyMinecraft.Models;
 public class FaceCheckData {
     public static Faces[] faces = {
     Faces.LEFT, Faces.RIGHT, Faces.BOTTOM, Faces.TOP, Faces.BACK, Faces.FRONT

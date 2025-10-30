@@ -1,4 +1,4 @@
-﻿namespace MyMinecraft.Models_r; 
+﻿namespace MyMinecraft.Models; 
 public struct NoiseSettings {
     public FastNoiseLite.NoiseType Type { get; set; }
     public float Frequency { get; set; }

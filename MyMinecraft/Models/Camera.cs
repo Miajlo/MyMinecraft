@@ -1,7 +1,6 @@
-﻿using MyMinecraft.Models_r;
-
-namespace MyMinecraft.Models; 
-public class Camera {
+﻿namespace MyMinecraft.Models;
+public class Camera
+{
     #region GameRules
     public GameRules gameRules = new();
     #endregion
@@ -27,14 +26,15 @@ public class Camera {
     public float gravitalVelocity = 0;
     public float upwardVelocity = 0;
 
-    WeakReference<World_r> worldRef;
-    Server_r server;
+    WeakReference<World> worldRef;
+    Server server;
     public Vector3 position;
     public Vector3 lastChunkPos = (-500, 0, -500);
     Vector3 up = Vector3.UnitY;
-    public Vector3 front = - Vector3.UnitZ;
+    public Vector3 front = -Vector3.UnitZ;
     Vector3 right = Vector3.UnitX;
-    public Camera(float width, float height, Vector3 pos, WeakReference<World_r> worldd, Server_r server) {
+    public Camera(float width, float height, Vector3 pos, WeakReference<World> worldd, Server server)
+    {
         Width = width;
         Height = height;
         position = pos;
@@ -43,32 +43,36 @@ public class Camera {
         this.server = server;
         playerState = PlayerStates.IN_AIR;
     }
-    public Matrix4 GetViewMatrix() {
+    public Matrix4 GetViewMatrix()
+    {
         return Matrix4.LookAt(position, position + front, up);
     }
-    public Matrix4 GetProjectionMatrix() {
+    public Matrix4 GetProjectionMatrix()
+    {
         return Matrix4.CreatePerspectiveFieldOfView(
             MathHelper.DegreesToRadians(GameConfig.FoV),
             Width / Height, GameConfig.NearPlane, GameConfig.FarPlane);
     }
-    
-    public Matrix4 GetFrustumProjectionMatrix() {
+
+    public Matrix4 GetFrustumProjectionMatrix()
+    {
         return Matrix4.CreatePerspectiveFieldOfView(
-           MathHelper.DegreesToRadians(GameConfig.FoV*1.2f),
+           MathHelper.DegreesToRadians(GameConfig.FoV * 1.2f),
            Width / Height, GameConfig.NearPlane, GameConfig.FarPlane);
     }
 
-    private void UpdateVectors() {
+    private void UpdateVectors()
+    {
         if (pitch > 89.0f)
             pitch = 89.0f;
         if (pitch < -89.0f)
             pitch = -89.0f;
 
 
-        front.X = MathF.Cos(MathHelper.DegreesToRadians(yawn)) 
+        front.X = MathF.Cos(MathHelper.DegreesToRadians(yawn))
                 * MathF.Cos(MathHelper.DegreesToRadians(pitch));
         front.Y = MathF.Sin(MathHelper.DegreesToRadians(pitch));
-        front.Z = MathF.Sin(MathHelper.DegreesToRadians(yawn)) 
+        front.Z = MathF.Sin(MathHelper.DegreesToRadians(yawn))
                 * MathF.Cos(MathHelper.DegreesToRadians(pitch));
 
         front = Vector3.Normalize(front);
@@ -77,7 +81,8 @@ public class Camera {
         up = Vector3.Normalize(Vector3.Cross(right, front));
     }
 
-    public List<ServerPacket> InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
+    public List<ServerPacket> InputController(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window)
+    {
         List<ServerPacket> packetsToSend = [];
         Vector3 newPosition = position;
 
@@ -99,9 +104,9 @@ public class Camera {
         //if (input.IsKeyDown(Keys.LeftShift))
         //    newPosition -= new Vector3(0, gameRules.movementSpeed * (float)e.Time, 0);
 
-        newPosition = gameRules.physics 
+        newPosition = gameRules.physics
                     ? HandleMovement(input, e)
-                    : HandleMovementNoPhysics(input,e);
+                    : HandleMovementNoPhysics(input, e);
 
 
         Vector3 finalPosition = position;
@@ -125,7 +130,8 @@ public class Camera {
         newHitbox = GetPlayerHitbox(new(finalPosition.X, newPosition.Y, position.Z));
         if (!CheckForCollisions(newHitbox).CollidedY)
             finalPosition.Y = newPosition.Y;
-        else {
+        else
+        {
             newPosition.Y = finalPosition.Y; // Revert Y movement if colliding
             //gravitalVelocity = 0;
         }
@@ -139,7 +145,8 @@ public class Camera {
 
         // Final check: Ensure player is not fully inside a block
         newHitbox = GetPlayerHitbox(finalPosition);
-        if (CheckForCollisions(newHitbox).Any()) {
+        if (CheckForCollisions(newHitbox).Any())
+        {
             finalPosition = position; // Fully blocked, revert to original position
         }
 
@@ -166,32 +173,37 @@ public class Camera {
             PrintCurrentPosition();
 
 
-        if(input.IsKeyPressed(Keys.F)) {
+        if (input.IsKeyPressed(Keys.F))
+        {
             gameRules.physics = !gameRules.physics;
             Console.WriteLine($"Physics set to: {gameRules.physics}");
         }
 
-        if (input.IsKeyPressed(Keys.N) ) {
+        if (input.IsKeyPressed(Keys.N))
+        {
             gameRules.doCollisionChecks = !gameRules.doCollisionChecks;
             Console.WriteLine($"Collision checks set to: {gameRules.doCollisionChecks}");
         }
-        
 
 
-        if (input.IsKeyPressed(Keys.M)) {
+
+        if (input.IsKeyPressed(Keys.M))
+        {
             gameRules.generateChunks = !gameRules.generateChunks;
             Console.WriteLine($"Generate chunks set to: {gameRules.generateChunks}");
         }
 
-        if (input.IsKeyPressed(Keys.G)) {
+        if (input.IsKeyPressed(Keys.G))
+        {
             gameRules.showChunkBorders = !gameRules.showChunkBorders;
             Console.WriteLine($"Show Chunk Borders: {gameRules.showChunkBorders}");
-            
+
         }
 
 
 
-        if(mouse.IsButtonPressed(MouseButton.Left)) {
+        if (mouse.IsButtonPressed(MouseButton.Left))
+        {
             //DestryBlock();
             packetsToSend.Add(new DestroyBlockPacket(position, front, range));
         }
@@ -199,11 +211,13 @@ public class Camera {
         if (mouse.IsButtonPressed(MouseButton.Right))
             packetsToSend.Add(new PlaceBlockPacket(position, front, range, selectedBlock));
 
-        if (isFirstMove) {
+        if (isFirstMove)
+        {
             lastPosition = new(mouse.X, mouse.Y);
             isFirstMove = false;
         }
-        else {
+        else
+        {
             var dX = mouse.X - lastPosition.X;
             var dY = mouse.Y - lastPosition.Y;
 
@@ -217,11 +231,14 @@ public class Camera {
         return packetsToSend;
     }
 
-    private void HandleNumericalInput(KeyboardState input) {
-        for (int i = 1; i <= 9; i++) { // Loop through number keys
+    private void HandleNumericalInput(KeyboardState input)
+    {
+        for (int i = 1; i <= 9; i++)
+        { // Loop through number keys
             Keys key = Keys.D0 + i;       // Regular number keys (0-9)           
 
-            if (input.IsKeyPressed(key)) {
+            if (input.IsKeyPressed(key))
+            {
                 byte blockId = (byte)i; // Convert int to byte first
 
                 if (!Enum.IsDefined(typeof(BlockType), blockId))
@@ -233,7 +250,8 @@ public class Camera {
         }
     }
 
-    private Vector3 HandleMovementNoPhysics(KeyboardState input, FrameEventArgs e) {
+    private Vector3 HandleMovementNoPhysics(KeyboardState input, FrameEventArgs e)
+    {
         Vector3 newPosition = position;
         if (input.IsKeyDown(Keys.W))
             newPosition += front * gameRules.movementSpeed * (float)e.Time;
@@ -256,7 +274,8 @@ public class Camera {
         return newPosition;
     }
 
-    private Vector3 HandleMovement(KeyboardState input, FrameEventArgs e) {
+    private Vector3 HandleMovement(KeyboardState input, FrameEventArgs e)
+    {
         if (!gameRules.physics)
             return position; // No movement if physics is disabled
 
@@ -266,28 +285,30 @@ public class Camera {
         Vector3 moveDirection = Vector3.Zero;
 
         if (input.IsKeyDown(Keys.W))
-            moveDirection += (front - new Vector3(0, front.Y, 0));
+            moveDirection += front - new Vector3(0, front.Y, 0);
         if (input.IsKeyDown(Keys.S))
-            moveDirection -= (front - new Vector3(0, front.Y, 0));
+            moveDirection -= front - new Vector3(0, front.Y, 0);
         if (input.IsKeyDown(Keys.A))
-            moveDirection -= (right - new Vector3(0, right.Y, 0));
+            moveDirection -= right - new Vector3(0, right.Y, 0);
         if (input.IsKeyDown(Keys.D))
-            moveDirection += (right - new Vector3(0, right.Y, 0));
-        if (playerState == PlayerStates.IN_AIR) {
+            moveDirection += right - new Vector3(0, right.Y, 0);
+        if (playerState == PlayerStates.IN_AIR)
+        {
             gravitalVelocity += gameRules.gravity * deltaTime;
             gravitalVelocity = MathF.Min(gravitalVelocity, gameRules.terminalVelocity);
             if (gravitalVelocity == 0)
                 playerState = PlayerStates.ON_GROUND;
 
         }
-        if (input.IsKeyDown(Keys.Space) && playerState == PlayerStates.ON_GROUND) {
+        if (input.IsKeyDown(Keys.Space) && playerState == PlayerStates.ON_GROUND)
+        {
             upwardVelocity = CalculateInitialJumpVelocity();
             playerState = PlayerStates.IN_AIR;
             Console.WriteLine("Jump pressed!");
-        }        
+        }
 
         if (moveDirection.LengthSquared > 0)
-            moveDirection = Vector3.Normalize(moveDirection);       
+            moveDirection = Vector3.Normalize(moveDirection);
 
         float newY = position.Y;
 
@@ -302,23 +323,25 @@ public class Camera {
             newPosition.Z = position.Z;//revert
 
         newPosition.Y = newY;
-        if (CheckForCollisions(GetPlayerHitbox(newPosition)).Any()) {
+        if (CheckForCollisions(GetPlayerHitbox(newPosition)).Any())
+        {
             newPosition.Y = position.Y;//revert
             gravitalVelocity = 0;
             upwardVelocity = 0;
             playerState = PlayerStates.ON_GROUND;
-        }        
+        }
 
         var world = GetWorld();
 
         if (playerState == PlayerStates.IN_AIR && gravitalVelocity == 0 && upwardVelocity == 0)
             playerState = PlayerStates.ON_GROUND;
 
-        if (world != null && playerState == PlayerStates.ON_GROUND) {
+        if (world != null && playerState == PlayerStates.ON_GROUND)
+        {
             var hitbox = GetPlayerHitbox(newPosition);
             bool fullyAirborne = true; // Assume the player is airborne
             //Console.WriteLine($"FeetY:{hitbox.Min.Y}, Eye height:{position.Y}");
-            float minY = MathF.Floor(hitbox.Min.Y)+0.1f;
+            float minY = MathF.Floor(hitbox.Min.Y) + 0.1f;
             var corners = new[] {
                 new Vector3(hitbox.Min.X, minY, hitbox.Min.Z), // Front-left corner
                 new Vector3(hitbox.Max.X, minY, hitbox.Min.Z), // Front-right corner
@@ -326,50 +349,57 @@ public class Camera {
                 new Vector3(hitbox.Max.X, minY, hitbox.Max.Z)  // Back-right corner
             };
 
-            foreach (var corner in corners) {
+            foreach (var corner in corners)
+            {
                 var checkPos = new Vector3(corner.X, corner.Y - 1, corner.Z);
-                var chunkPos = Chunk_r.ConvertToChunkCoords(checkPos);
-                var blockPos = Chunk_r.ConvertToChunkBlockCoord(checkPos);
+                var chunkPos = Chunk.ConvertToChunkCoords(checkPos);
+                var blockPos = Chunk.ConvertToChunkBlockCoord(checkPos);
 
                 var block = world.GetBlockAt(chunkPos, blockPos);
-                if (block != BlockType.AIR) {
-                    fullyAirborne = false; 
-                    break; 
+                if (block != BlockType.AIR)
+                {
+                    fullyAirborne = false;
+                    break;
                 }
             }
-            if (fullyAirborne) 
+            if (fullyAirborne)
                 playerState = PlayerStates.IN_AIR;
-            
+
         }
 
         if (playerState == PlayerStates.ON_GROUND)
-            newPosition.Y = MathF.Floor(newPosition.Y)+0.7f;
+            newPosition.Y = MathF.Floor(newPosition.Y) + 0.7f;
 
         return newPosition;
     }
 
 
-    private Collision CheckForCollisions(AABB playerAABB) {
+    private Collision CheckForCollisions(AABB playerAABB)
+    {
         if (!gameRules.doCollisionChecks)
             return new();
 
-        if (playerAABB.Max.Y > Chunk_r.HEIGHT - 1 || playerAABB.Min.Y < 2)
+        if (playerAABB.Max.Y > Chunk.HEIGHT - 1 || playerAABB.Min.Y < 2)
             return new Collision(false, false, false);
 
         var world = GetWorld();
-        if (world == null) {
+        if (world == null)
+        {
             Console.WriteLine("Camera.CheckForCollision: world was null");
             return new Collision(false, false, false);
         }
 
         bool collidedX = false, collidedY = false, collidedZ = false;
 
-        for (int x = (int)Math.Floor(playerAABB.Min.X); x <= (int)Math.Floor(playerAABB.Max.X); x++) {
-            for (int y = (int)Math.Floor(playerAABB.Min.Y); y <= (int)Math.Floor(playerAABB.Max.Y); y++) {
-                for (int z = (int)Math.Floor(playerAABB.Min.Z); z <= (int)Math.Floor(playerAABB.Max.Z); z++) {
+        for (int x = (int)Math.Floor(playerAABB.Min.X); x <= (int)Math.Floor(playerAABB.Max.X); x++)
+        {
+            for (int y = (int)Math.Floor(playerAABB.Min.Y); y <= (int)Math.Floor(playerAABB.Max.Y); y++)
+            {
+                for (int z = (int)Math.Floor(playerAABB.Min.Z); z <= (int)Math.Floor(playerAABB.Max.Z); z++)
+                {
                     Vector3 blockPos = new Vector3(x, y, z);
-                    Vector3i chunkPos = (Vector3i)Chunk_r.ConvertToChunkCoords(blockPos);
-                    Vector3i localBlockPos = Chunk_r.ConvertToChunkBlockCoord(blockPos);
+                    Vector3i chunkPos = (Vector3i)Chunk.ConvertToChunkCoords(blockPos);
+                    Vector3i localBlockPos = Chunk.ConvertToChunkBlockCoord(blockPos);
 
                     if (!world.GetChunk(chunkPos, out var chunk))
                         continue;
@@ -377,11 +407,13 @@ public class Camera {
                     if (!world.IsLoadedChunk(chunk!.position))
                         continue;
 
-                    if (chunk.GetBlockTypeAt(localBlockPos) != BlockType.AIR) {
+                    if (chunk.GetBlockTypeAt(localBlockPos) != BlockType.AIR)
+                    {
                         // Block hitbox (AABB for the block)
                         AABB blockAABB = new AABB(blockPos, blockPos + Vector3.One);
 
-                        if (playerAABB.Intersects(blockAABB)) {
+                        if (playerAABB.Intersects(blockAABB))
+                        {
                             if (playerAABB.Max.X > blockAABB.Min.X && playerAABB.Min.X < blockAABB.Max.X)
                                 collidedX = true;
 
@@ -400,18 +432,20 @@ public class Camera {
     }
 
 
-    public World_r? GetWorld() {
+    public World? GetWorld()
+    {
         if (worldRef.TryGetTarget(out var world))
             return world;
         else
             return null;
     }
 
-    private void PrintCurrentPosition() {
+    private void PrintCurrentPosition()
+    {
         Console.WriteLine($"Position eye: [ {position.X}, {position.Y}, {position.Z} ]");
-        Console.WriteLine($"Position feet: [ {position.X}, {position.Y-GameConfig.playerEyeHeight}, {position.Z} ]");
+        Console.WriteLine($"Position feet: [ {position.X}, {position.Y - GameConfig.playerEyeHeight}, {position.Z} ]");
         f3Pressed = true;
-        var chunkID = Chunk_r.ConvertToChunkCoords(position);
+        var chunkID = Chunk.ConvertToChunkCoords(position);
         Console.WriteLine($"Current chunk: [ {chunkID} ]");
         var world = GetWorld();
 
@@ -423,9 +457,9 @@ public class Camera {
         Console.WriteLine($"Initial jump velocity: [{CalculateInitialJumpVelocity()}]");
         Console.WriteLine($"Terminal velocity: [{gameRules.terminalVelocity}]");
 
-        var blockPos = Chunk_r.ConvertToChunkBlockCoord(position);
+        var blockPos = Chunk.ConvertToChunkBlockCoord(position);
 
-        blockPos.Y-=2;
+        blockPos.Y -= 2;
 
         var block = world.GetBlockAt(chunkID, blockPos);
 
@@ -435,25 +469,28 @@ public class Camera {
         //Console.WriteLine($"Collision [x,y,z]: [{collision.CollidedX}, {collision.CollidedY}, {collision.CollidedZ}");
     }
 
-    public static Vector3i GetChunkPos(Vector3 pos) {
+    public static Vector3i GetChunkPos(Vector3 pos)
+    {
         int posX, posY, posZ;
 
-        posX = (int)((pos.X -  pos.X % 16) / 16 + 1 * Math.Sign(pos.X));
+        posX = (int)((pos.X - pos.X % 16) / 16 + 1 * Math.Sign(pos.X));
         posY = 0;
-        posZ = (int)((pos.Z -  pos.Z % 16) / 16 + 1 * Math.Sign(pos.Z));
+        posZ = (int)((pos.Z - pos.Z % 16) / 16 + 1 * Math.Sign(pos.Z));
         return new(posX, posY, posZ);
     }
 
-    public static string GetChunkID(Vector3 pos) {
+    public static string GetChunkID(Vector3 pos)
+    {
         int posX, posY, posZ;
 
-        posX = (int)((pos.X -  pos.X % 16) / 16 + 1 * Math.Sign(pos.X));
+        posX = (int)((pos.X - pos.X % 16) / 16 + 1 * Math.Sign(pos.X));
         posY = 0;
-        posZ = (int)((pos.Z -  pos.Z % 16) / 16 + 1 * Math.Sign(pos.Z));
+        posZ = (int)((pos.Z - pos.Z % 16) / 16 + 1 * Math.Sign(pos.Z));
         return $"{posX},{posY},{posZ}";
     }
 
-    public static AABB GetPlayerHitbox(Vector3 eyePos) {
+    public static AABB GetPlayerHitbox(Vector3 eyePos)
+    {
         float minX = eyePos.X - GameConfig.playerWidth / 2;
         float maxX = eyePos.X + GameConfig.playerWidth / 2;
 
@@ -466,13 +503,15 @@ public class Camera {
         return new AABB(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
     }
 
-    public float CalculateInitialJumpVelocity() {
+    public float CalculateInitialJumpVelocity()
+    {
         return MathF.Sqrt(2 * gameRules.gravity * gameRules.jumpHeight);
     }
 
 
 
-    public List<ServerPacket> Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window) {
+    public List<ServerPacket> Update(KeyboardState input, MouseState mouse, FrameEventArgs e, Window window)
+    {
         return InputController(input, mouse, e, window);
-    } 
+    }
 }
