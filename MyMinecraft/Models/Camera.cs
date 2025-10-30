@@ -239,7 +239,7 @@ public class Camera
 
             if (input.IsKeyPressed(key))
             {
-                byte blockId = (byte)i; // Convert int to byte first
+                var blockId = (ushort)i; // Convert int to byte first
 
                 if (!Enum.IsDefined(typeof(BlockType), blockId))
                     continue;

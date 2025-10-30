@@ -1,6 +1,6 @@
 ﻿namespace MyMinecraft.Models;
 
-public enum BlockType : byte
+public enum BlockType : ushort
 {
     AIR,
     DIRT,

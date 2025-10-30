@@ -747,7 +747,6 @@ public class Server {
     #region FILE_CONTROL
 
     public void SaveChunkData(Chunk chunk) {
-        return;
         var path = world.path;
         if (!Directory.Exists(path)) {
             Console.WriteLine("[ ERROR ]: World folder does not exist");
@@ -756,37 +755,20 @@ public class Server {
 
         int regionX = chunk.position.X / World.REGION_SIZE;
         int regionZ = chunk.position.Y / World.REGION_SIZE;
-        path = Path.Join(path, $"reg_{regionX}_{regionZ}.txt");
+        string regionDir = Path.Join(path, $"reg_{regionX}_{regionZ}");
+
+        if (!Directory.Exists(regionDir))
+            Directory.CreateDirectory(regionDir);
+
+        string filePath = Path.Join(regionDir, $"chunk_{chunk.position.X}_{chunk.position.Y}.bin");
 
         try {
-            var lines = new List<string>();
-            bool updated = false;
-
-            if (File.Exists(path)) {
-                // Read line by line to avoid loading whole file at once (though File.ReadAllLines does this anyway)
-                using (var reader = new StreamReader(path)) {
-                    string line;
-                    while ((line = reader.ReadLine()) != null) {
-                        var splitLine = line.Split('|', 2); // split into max 2 parts: position and rest
-                        if (splitLine.Length >= 1 && splitLine[0] == chunk.position.ToString()) {
-                            // Replace rest of line with chunkBlocks serialized
-                            string newData = string.Join(",", chunk.chunkBlocks.Select(b => b.ToString()));
-                            lines.Add(splitLine[0] + "|" + newData);
-                            updated = true;
-                        }
-                        else {
-                            lines.Add(line);
-                        }
-                    }
+            using (var writer = new BinaryWriter(File.Open(filePath, FileMode.Create))) {
+                writer.Write(chunk.chunkBlocks.Length); // Write count first
+                foreach (var block in chunk.chunkBlocks) {
+                    writer.Write((ushort)block.type); // Write each block as ushort
                 }
             }
-
-            if (!updated) 
-                lines.Add($"{chunk.position}|{string.Join(",", chunk.chunkBlocks.Select(b => b.ToString()))}");
-            
-
-            // Write all lines back
-            File.WriteAllLines(path, lines);
         }
         catch (Exception ex) {
             Console.WriteLine($"[ ERROR ]: {ex.Message}");
@@ -794,7 +776,6 @@ public class Server {
     }
 
     public Chunk LoadChunkData(Vector3i position) {
-        return null;
         var path = world.path;
         if (!Directory.Exists(path)) {
             Console.WriteLine("[ ERROR ]: World folder does not exist");
@@ -803,43 +784,28 @@ public class Server {
 
         int regionX = position.X / World.REGION_SIZE;
         int regionZ = position.Y / World.REGION_SIZE;
-        path = Path.Join(path, $"reg_{regionX}_{regionZ}.txt");
+        string regionDir = Path.Join(path, $"reg_{regionX}_{regionZ}");
+        string filePath = Path.Join(regionDir, $"chunk_{position.X}_{position.Y}.bin");
 
-        if (!File.Exists(path)) {
-            Console.WriteLine("[ INFO ]: Region file not found.");
+        if (!File.Exists(filePath)) {
+            Console.WriteLine("[ INFO ]: Chunk file not found.");
             return null;
         }
 
         try {
-            using var reader = new StreamReader(path);
-            string line;
-            while ((line = reader.ReadLine()) != null) {
-                var splitLine = line.Split('|');
-                if (splitLine.Length < 2)
-                    continue;
-
-                if (splitLine[0] == position.ToString()) {
-                    // Parse block data from CSV string
-                    string blockData = splitLine[1];
-                    var blockStrings = blockData.Split(',');
-
-                    // Assuming chunkBlocks is List<BlockType> or similar
-                    var blocks = new List<Block>();
-
-                    foreach (var blockStr in blockStrings) {
-                        blocks.Add(Block.ParseString(blockStr));
-                    }
-
-                    return new Chunk(position, blocks);
+            using (var reader = new BinaryReader(File.Open(filePath, FileMode.Open))) {
+                int count = reader.ReadInt32();
+                var blocks = new List<Block>(count);
+                for (int i = 0; i < count; i++) {
+                    blocks.Add(new Block((BlockType)reader.ReadUInt16()));
                 }
+                return new Chunk(position, blocks);
             }
         }
         catch (Exception ex) {
             Console.WriteLine($"[ ERROR ]: {ex.Message}");
+            return null;
         }
-
-        // Not found
-        return null;
     }
     #endregion
 }
