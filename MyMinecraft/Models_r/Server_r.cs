@@ -101,6 +101,7 @@ public class Server_r {
                         meshSem.Release(remeshCount);
                 }
                 this.crossChunkData.TryRemove(chunk.position, out _);
+                world.AddGeneratedChunk(chunk.position);
                 chunksToMesh.Enqueue(chunk);                
             }
             if (releaseCount > 0)
@@ -155,6 +156,15 @@ public class Server_r {
                 Vector3i copyChunkPos = new(i, 0, j);
                 //if (world.IsLoadedChunk(copyChunkPos))
                 //    continue;
+                if(world.IsGenerated(copyChunkPos)) {
+                    var loadedChunk = LoadChunkData(copyChunkPos);
+                    if(loadedChunk != null) {
+                        chunksToMesh.Enqueue(loadedChunk);
+                        world.AddLoadedChunk(loadedChunk);
+                        meshSem.Release();
+                        continue;
+                    }                  
+                }
                 bool usedForGen = false;
                 chunksToGen.Enqueue(new(copyChunkPos, usedForGen));
                 //genSem.Release();
@@ -183,7 +193,9 @@ public class Server_r {
                 
                 _ = chunksToRender.TryRemove(chunk.position, out _);
                 try {
-                    _ = world.RemoveChunk(chunk.position);
+                    var tmp = world.RemoveChunk(chunk.position);
+                    if (tmp.Dirty)
+                        SaveChunkData(tmp);
                 }
                 catch(ArgumentException argEx) {
                     Console.WriteLine(argEx.Message);
@@ -349,7 +361,7 @@ public class Server_r {
                         chunk.PlaceBlockAt(prevBlockPos, packet.selectedBlock, faceHit);
                         chunk.Redraw = true;
                         chunk.AddedFaces = false;
-
+                        chunk.Dirty = true;
                         chunksToMesh.Enqueue(chunk);
 
                         remeshCount = MarkNeighboursForRedraw(chunk.position, chunkBlockPos) + 1;
@@ -432,7 +444,7 @@ public class Server_r {
                         chunk.SetBlockAt(chunkBlockPos, BlockType.AIR);
                         chunk.Redraw = true;
                         chunk.AddedFaces = false;
-                       
+                        chunk.Dirty = true;
                         chunksToMesh.Enqueue(chunk);
 
                         remeshCount = MarkNeighboursForRedraw(chunk.position, chunkBlockPos) + 1; 
@@ -733,4 +745,102 @@ public class Server_r {
         foreach (var chunk in chunksToRender.Values)
             chunk.Delete();
     }
+    #region FILE_CONTROL
+
+    public void SaveChunkData(Chunk_r chunk) {
+        return;
+        var path = world.path;
+        if (!Directory.Exists(path)) {
+            Console.WriteLine("[ ERROR ]: World folder does not exist");
+            return;
+        }
+
+        int regionX = chunk.position.X / World_r.REGION_SIZE;
+        int regionZ = chunk.position.Y / World_r.REGION_SIZE;
+        path = Path.Join(path, $"reg_{regionX}_{regionZ}.txt");
+
+        try {
+            var lines = new List<string>();
+            bool updated = false;
+
+            if (File.Exists(path)) {
+                // Read line by line to avoid loading whole file at once (though File.ReadAllLines does this anyway)
+                using (var reader = new StreamReader(path)) {
+                    string line;
+                    while ((line = reader.ReadLine()) != null) {
+                        var splitLine = line.Split('|', 2); // split into max 2 parts: position and rest
+                        if (splitLine.Length >= 1 && splitLine[0] == chunk.position.ToString()) {
+                            // Replace rest of line with chunkBlocks serialized
+                            string newData = string.Join(",", chunk.chunkBlocks.Select(b => b.ToString()));
+                            lines.Add(splitLine[0] + "|" + newData);
+                            updated = true;
+                        }
+                        else {
+                            lines.Add(line);
+                        }
+                    }
+                }
+            }
+
+            if (!updated) 
+                lines.Add($"{chunk.position}|{string.Join(",", chunk.chunkBlocks.Select(b => b.ToString()))}");
+            
+
+            // Write all lines back
+            File.WriteAllLines(path, lines);
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"[ ERROR ]: {ex.Message}");
+        }
+    }
+
+    public Chunk_r LoadChunkData(Vector3i position) {
+        return null;
+        var path = world.path;
+        if (!Directory.Exists(path)) {
+            Console.WriteLine("[ ERROR ]: World folder does not exist");
+            return null;
+        }
+
+        int regionX = position.X / World_r.REGION_SIZE;
+        int regionZ = position.Y / World_r.REGION_SIZE;
+        path = Path.Join(path, $"reg_{regionX}_{regionZ}.txt");
+
+        if (!File.Exists(path)) {
+            Console.WriteLine("[ INFO ]: Region file not found.");
+            return null;
+        }
+
+        try {
+            using var reader = new StreamReader(path);
+            string line;
+            while ((line = reader.ReadLine()) != null) {
+                var splitLine = line.Split('|');
+                if (splitLine.Length < 2)
+                    continue;
+
+                if (splitLine[0] == position.ToString()) {
+                    // Parse block data from CSV string
+                    string blockData = splitLine[1];
+                    var blockStrings = blockData.Split(',');
+
+                    // Assuming chunkBlocks is List<BlockType> or similar
+                    var blocks = new List<Block_r>();
+
+                    foreach (var blockStr in blockStrings) {
+                        blocks.Add(Block_r.ParseString(blockStr));
+                    }
+
+                    return new Chunk_r(position, blocks);
+                }
+            }
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"[ ERROR ]: {ex.Message}");
+        }
+
+        // Not found
+        return null;
+    }
+    #endregion
 }

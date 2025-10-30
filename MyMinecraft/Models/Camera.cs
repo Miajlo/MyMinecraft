@@ -374,7 +374,7 @@ public class Camera {
                     if (!world.GetChunk(chunkPos, out var chunk))
                         continue;
 
-                    if (!world.IsLoadedChunk(chunk.position))
+                    if (!world.IsLoadedChunk(chunk!.position))
                         continue;
 
                     if (chunk.GetBlockTypeAt(localBlockPos) != BlockType.AIR) {
@@ -408,12 +408,6 @@ public class Camera {
     }
 
     private void PrintCurrentPosition() {
-        int posX, posY, posZ;
-
-        posX = (int)((position.X -  position.X % 16 )/ 16 + 1 * Math.Sign(position.X));
-        posY = 0;
-        posZ = (int)((position.Z -  position.Z % 16) / 16 + 1 * Math.Sign(position.Z));
-
         Console.WriteLine($"Position eye: [ {position.X}, {position.Y}, {position.Z} ]");
         Console.WriteLine($"Position feet: [ {position.X}, {position.Y-GameConfig.playerEyeHeight}, {position.Z} ]");
         f3Pressed = true;

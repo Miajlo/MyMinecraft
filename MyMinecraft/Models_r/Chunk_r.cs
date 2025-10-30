@@ -46,7 +46,7 @@ public class Chunk_r {
         Redraw = true;
         AddedFaces = false;
         FirstDrawing = true;
-        Dirty = false;
+        Dirty = true;
         ShouldClearData = false;
         UsedForStructGen = false;
 
@@ -66,6 +66,12 @@ public class Chunk_r {
         this.position = position;
         GenHeightMap();
         //GenHeightmapSpline();
+    }
+
+    public Chunk_r(Vector3i position, List<Block_r> chunkBlocks):this() {
+        Dirty = false;
+        this.position = position;
+        this.chunkBlocks = chunkBlocks.ToArray();
     }
     #endregion
 
@@ -255,7 +261,7 @@ public class Chunk_r {
         chunkVAO?.Bind();
         chunkIBO?.Bind();
         Matrix4 model = Matrix4.CreateTranslation(position);
-        int modelLocation = GL.GetUniformLocation(program.ID, "model");
+        int modelLocation = GL.GetUniformLocation(program!.ID, "model");
         GL.UniformMatrix4(modelLocation, true, ref model);
         GL.ActiveTexture(TextureUnit.Texture0);
         Texture.Bind();
@@ -426,13 +432,14 @@ public class Chunk_r {
         return chunkBlocks[Index(x,y,z)];
     }
 
-    public void SaveToFile() {
+    public static void SaveToFile() {
         
 
         return;
     }
 
     public void LoadFromFile() {
+
         return;
     }
     #endregion

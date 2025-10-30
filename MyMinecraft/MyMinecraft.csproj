@@ -14,11 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BinomialHeap\BinomialHeapLibrary.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Saves\" />
+    <Folder Include="Saves\My World\" />
   </ItemGroup>
 
 </Project>

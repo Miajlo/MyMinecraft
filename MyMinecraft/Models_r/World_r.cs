@@ -13,22 +13,36 @@ public  class World_r {
     public const byte REGION_SIZE = 32;
     public string name;
     public string savesPath;
+    public string path;
+    public bool genDirty;
     #endregion
 
     #region CONSTRUCTORS
     public World_r() {
         generatedChunks = [];
         loadedChunks = [];
+        name = savesPath = "";
         seed = 0;
-
-        perlinNoise2DSettings = new();
-        string? currentDir = DirExtension.ProjectBase();
-        Console.WriteLine("Current directory: " + currentDir);
+        genDirty = false;
     }
 
-    public World_r(int seed, NoiseSettings settings, string name = "New World", string savesPath = "Saves"):base() {
+    public World_r(int seed, NoiseSettings settings, string name = "New World", string savesPath = "Saves"):this() {
         this.seed = seed;
         perlinNoise2DSettings = settings;
+
+        perlinNoise2DSettings = new();
+        path = Path.Combine(DirExtension.ProjectBase(), savesPath);
+        path = Path.Combine(path, name);
+
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
+        else
+            LoadWorldData();
+
+    }
+
+    private void LoadWorldData() {
+        
     }
     #endregion
 
@@ -45,8 +59,8 @@ public  class World_r {
         if (!loadedChunks.TryRemove(position, out var chunk))
            throw new ArgumentException($"[ERROR]: Chunk not loaded: {position}");
 
-        if (chunk.Dirty)
-            chunk.SaveToFile();
+        //if (chunk.Dirty)
+        //    chunk.SaveToFile();
 
         return chunk;
     }
@@ -98,11 +112,15 @@ public  class World_r {
         return block != BlockType.AIR;
     }
 
-    public void SaveChunk(Chunk_r chunk) {
+    public void SaveChunkData(Chunk_r chunk) {
         int regionX = chunk.position.X / REGION_SIZE;
         int regionZ = chunk.position.Y / REGION_SIZE;
 
 
+    }
+
+    public void AddGeneratedChunk(Vector3i position) {
+        generatedChunks.Add(position);
     }
     #endregion
 
